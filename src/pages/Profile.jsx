@@ -7,6 +7,17 @@ const Profile = () => {
   const [name, setName] = useState(user.name);
   const [photoInput, setPhotoInput] = useState('');
 
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoInput(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSave = (e) => {
     e.preventDefault();
     updateUser({ name, photo: photoInput || user.photo });
@@ -28,13 +39,13 @@ const Profile = () => {
               )}
             </div>
             <div style={{ flex: 1 }}>
-              <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>Profil rasmini o'zgartirish (URL kiriting)</p>
+              <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>Profil rasmini yuklash</p>
               <input
-                type="text"
-                placeholder="Rasm manzili (URL)"
-                value={photoInput}
-                onChange={(e) => setPhotoInput(e.target.value)}
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoUpload}
                 className="form-input"
+                style={{ padding: '6px' }}
               />
             </div>
           </div>

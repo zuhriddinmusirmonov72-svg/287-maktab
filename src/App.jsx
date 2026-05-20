@@ -7,6 +7,8 @@ import Teachers from './pages/Teachers';
 import Groups from './pages/Groups';
 import Management from './pages/Management';
 import Profile from './pages/Profile';
+import Courses from './pages/Courses';
+import Rooms from './pages/Rooms';
 import Layout from './components/Layout';
 
 function App() {
@@ -21,6 +23,8 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="teachers" element={<Teachers />} />
             <Route path="groups" element={<Groups />} />
+            <Route path="courses" element={<Courses />} />
+            <Route path="rooms" element={<Rooms />} />
             <Route path="management" element={<Management />} />
             <Route path="profile" element={<Profile />} />
           </Route>

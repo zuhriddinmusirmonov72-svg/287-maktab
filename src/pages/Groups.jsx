@@ -1,7 +1,7 @@
 import { useState, useContext } from 'react';
 import { AppContext } from '../context/AppContext';
 import { FaUsers, FaUserGraduate, FaSyncAlt } from 'react-icons/fa';
-import { FiMoreVertical } from 'react-icons/fi';
+import { FiMoreVertical, FiX } from 'react-icons/fi';
 
 const Groups = () => {
   const { groups, addGroup, toggleGroupStatus } = useContext(AppContext);
@@ -121,15 +121,20 @@ const Groups = () => {
         </div>
       </div>
 
-      {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h2 className="modal-title">Guruh qo'shish</h2>
-            <form onSubmit={handleSubmit}>
+      <div className={`right-drawer-overlay ${isModalOpen ? 'open' : ''}`} onClick={() => setIsModalOpen(false)}>
+        <div className={`right-drawer ${isModalOpen ? 'open' : ''}`} onClick={(e) => e.stopPropagation()}>
+            <div className="drawer-header">
+              <h2 className="drawer-title">Guruh qo'shish</h2>
+              <button className="drawer-close" onClick={() => setIsModalOpen(false)}><FiX /></button>
+            </div>
+            
+            <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '24px' }}>Bu yerda siz yangi guruh qo'shishingiz mumkin.</p>
+
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
               <div className="form-group">
                 <label className="form-label">Guruh nomi</label>
                 <input 
-                  type="text" required
+                  type="text" required placeholder="Guruh nomini kiriting"
                   value={newGroup.name} onChange={e => setNewGroup({...newGroup, name: e.target.value})}
                   className="form-input" 
                 />
@@ -137,19 +142,18 @@ const Groups = () => {
               <div className="form-group">
                 <label className="form-label">O'qituvchi ismini kiriting</label>
                 <input 
-                  type="text" 
+                  type="text" placeholder="O'qituvchi ismini kiriting"
                   value={newGroup.teacher} onChange={e => setNewGroup({...newGroup, teacher: e.target.value})}
                   className="form-input" 
                 />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
-                <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary">Bekor qilish</button>
-                <button type="submit" className="btn-primary">Saqlash</button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'auto', paddingTop: '24px', borderTop: '1px solid #f3f4f6' }}>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary" style={{ width: '48%' }}>Bekor qilish</button>
+                <button type="submit" className="btn-primary" style={{ width: '48%' }}>Saqlash</button>
               </div>
             </form>
-          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

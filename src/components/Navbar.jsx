@@ -43,7 +43,7 @@ const Navbar = ({ toggleSidebar }) => {
           </button>
         </div>
 
-        <Link to="/dashboard/profile" className="profile-img">
+        <Link to="/dashboard/profile" className="profile-avatar">
           {user.photo ? (
             <img src={user.photo} alt={user.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (

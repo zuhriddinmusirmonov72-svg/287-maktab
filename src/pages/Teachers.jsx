@@ -121,9 +121,8 @@ const Teachers = () => {
         </div>
       </div>
 
-      {isModalOpen && (
-        <div className="right-drawer-overlay">
-          <div className="right-drawer">
+      <div className={`right-drawer-overlay ${isModalOpen ? 'open' : ''}`} onClick={() => setIsModalOpen(false)}>
+        <div className={`right-drawer ${isModalOpen ? 'open' : ''}`} onClick={(e) => e.stopPropagation()}>
             <div className="drawer-header">
               <h2 className="drawer-title">O'qituvchi qo'shish</h2>
               <button className="drawer-close" onClick={() => setIsModalOpen(false)}><FiX /></button>
@@ -196,9 +195,8 @@ const Teachers = () => {
                 <button type="submit" className="btn-primary" style={{ width: '48%' }}>Saqlash</button>
               </div>
             </form>
-          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
