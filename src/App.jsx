@@ -9,6 +9,8 @@ import Management from './pages/Management';
 import Profile from './pages/Profile';
 import Courses from './pages/Courses';
 import Rooms from './pages/Rooms';
+import Students from './pages/Students';
+import GroupDetails from './pages/GroupDetails';
 import Layout from './components/Layout';
 
 function App() {
@@ -23,8 +25,10 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="teachers" element={<Teachers />} />
             <Route path="groups" element={<Groups />} />
+            <Route path="groups/:id" element={<GroupDetails />} />
             <Route path="courses" element={<Courses />} />
             <Route path="rooms" element={<Rooms />} />
+            <Route path="students" element={<Students />} />
             <Route path="management" element={<Management />} />
             <Route path="profile" element={<Profile />} />
           </Route>

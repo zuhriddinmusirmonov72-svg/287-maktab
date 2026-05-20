@@ -180,9 +180,8 @@ const Management = () => {
                 <button type="submit" className="btn-primary" style={{ width: '48%' }}>Saqlash</button>
               </div>
             </form>
-          </div>
         </div>
-      )}
+      </div>
 
       {/* Room Modal */}
       <div className={`right-drawer-overlay ${isRoomModalOpen ? 'open' : ''}`} onClick={() => setIsRoomModalOpen(false)}>

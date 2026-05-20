@@ -244,6 +244,12 @@ input {
   gap: 16px;
 }
 
+.nav-icons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .nav-icon-btn {
   color: #6b7280;
   width: 40px;

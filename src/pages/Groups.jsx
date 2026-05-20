@@ -1,9 +1,11 @@
 import { useState, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AppContext } from '../context/AppContext';
 import { FaUsers, FaUserGraduate, FaSyncAlt } from 'react-icons/fa';
 import { FiMoreVertical, FiX } from 'react-icons/fi';
 
 const Groups = () => {
+  const navigate = useNavigate();
   const { groups, addGroup, toggleGroupStatus } = useContext(AppContext);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newGroup, setNewGroup] = useState({
@@ -85,7 +87,11 @@ const Groups = () => {
             </thead>
             <tbody>
               {groups.map((group) => (
-                <tr key={group.id}>
+                <tr
+                  key={group.id}
+                  onClick={() => navigate(`/dashboard/groups/${group.id}`)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <td style={{ paddingLeft: '24px' }}>
                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                        <button 

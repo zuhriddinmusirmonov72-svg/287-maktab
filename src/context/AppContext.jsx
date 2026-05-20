@@ -39,6 +39,11 @@ export const AppProvider = ({ children }) => {
     ];
   });
 
+  const [students, setStudents] = useState(() => {
+    const savedStudents = localStorage.getItem('students');
+    return savedStudents ? JSON.parse(savedStudents) : [];
+  });
+
   useEffect(() => {
     localStorage.setItem('user', JSON.stringify(user));
   }, [user]);
@@ -50,6 +55,10 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('groups', JSON.stringify(groups));
   }, [groups]);
+
+  useEffect(() => {
+    localStorage.setItem('students', JSON.stringify(students));
+  }, [students]);
 
   const updateUser = (data) => setUser({ ...user, ...data });
 
@@ -65,12 +74,18 @@ export const AppProvider = ({ children }) => {
     ));
   };
 
+  const addStudent = (student) => {
+    setStudents([...students, { ...student, id: Date.now(), createdAt: new Date().toLocaleDateString() }]);
+  };
+  const deleteStudent = (id) => setStudents(students.filter(s => s.id !== id));
+
   return (
     <AppContext.Provider value={{ 
       user, updateUser, 
       darkMode, toggleDarkMode,
       teachers, addTeacher, deleteTeacher,
-      groups, addGroup, deleteGroup, toggleGroupStatus 
+      groups, addGroup, deleteGroup, toggleGroupStatus,
+      students, addStudent, deleteStudent
     }}>
       {children}
     </AppContext.Provider>
