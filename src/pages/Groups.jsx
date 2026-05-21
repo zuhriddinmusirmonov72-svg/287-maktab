@@ -95,7 +95,10 @@ const Groups = () => {
                   <td style={{ paddingLeft: '24px' }}>
                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                        <button 
-                         onClick={() => toggleGroupStatus(group.id)}
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           toggleGroupStatus(group.id);
+                         }}
                          className={`status-switch ${group.active ? 'active' : 'inactive'}`}
                        >
                          <span className="switch-knob"></span>

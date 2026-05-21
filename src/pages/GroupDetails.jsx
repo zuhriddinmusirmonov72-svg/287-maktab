@@ -1,21 +1,15 @@
 import { useState, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppContext } from '../context/AppContext';
-import { FiArrowLeft, FiTrash2, FiX, FiUser, FiClock, FiBook, FiMapPin } from 'react-icons/fi';
-import { FaUsers, FaUserGraduate, FaChalkboardTeacher } from 'react-icons/fa';
-
-const DAYS = ['Du', 'Se', 'Chor', 'Pay', 'Ju', 'Sha', 'Yak'];
+import { FiChevronLeft, FiBarChart2, FiX } from 'react-icons/fi';
 
 const GroupDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { groups, students, addStudent, deleteStudent, toggleGroupStatus } = useContext(AppContext);
+  const { groups, students } = useContext(AppContext);
   
   const group = groups.find(g => g.id === Number(id));
-  
-  const [activeTab, setActiveTab] = useState('talabalar');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newStudent, setNewStudent] = useState({ name: '', phone: '' });
+  const [activeTab, setActiveTab] = useState('malumotlar');
 
   if (!group) {
     return (
@@ -30,92 +24,66 @@ const GroupDetails = () => {
 
   const groupStudents = students.filter(s => s.group === group.name);
 
-  const handleAddStudent = (e) => {
-    e.preventDefault();
-    if (newStudent.name && newStudent.phone) {
-      addStudent({ ...newStudent, group: group.name });
-      setNewStudent({ name: '', phone: '' });
-      setIsModalOpen(false);
-    }
-  };
-
-  const tabs = [
-    { key: 'talabalar', label: "O'quvchilar" },
-    { key: 'jadval', label: 'Jadval' },
-    { key: 'haqqida', label: "Guruh haqida" },
-  ];
+  // Extract number from duration if possible, default to 6.0
+  const durationMatch = group.duration.match(/\d+/);
+  const durationNumber = durationMatch ? `${durationMatch[0]}.0` : '6.0';
 
   return (
-    <div className="page-container">
+    <div style={{ padding: '24px', backgroundColor: '#ffffff', minHeight: '100%', borderRadius: '12px' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-        <button
-          onClick={() => navigate('/dashboard/groups')}
-          style={{
-            width: '36px', height: '36px', borderRadius: '50%',
-            background: '#f3f4f6', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', cursor: 'pointer', border: 'none',
-            color: '#374151', flexShrink: 0
-          }}
-        >
-          <FiArrowLeft size={18} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button
+            onClick={() => navigate('/dashboard/groups')}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer', color: '#374151',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0
+            }}
+          >
+            <FiChevronLeft size={24} />
+          </button>
+          <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0, color: '#111827' }}>
+            {group.name}
+          </h1>
+          <span style={{ 
+            backgroundColor: '#dcfce7', color: '#16a34a', padding: '4px 12px', 
+            borderRadius: '4px', fontSize: '12px', fontWeight: '600'
+          }}>
+            Aktiv
+          </span>
+        </div>
+        
+        <button style={{ 
+          display: 'flex', alignItems: 'center', gap: '8px', 
+          padding: '8px 16px', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb', 
+          borderRadius: '8px', cursor: 'pointer', fontWeight: '600', color: '#374151', fontSize: '14px'
+        }}>
+          <FiBarChart2 size={16} />
+          Statistika
         </button>
-        <div style={{ flex: 1 }}>
-          <h1 className="page-title" style={{ marginBottom: '2px' }}>{group.name}</h1>
-          <p style={{ fontSize: '14px', color: '#6b7280' }}>{group.course} • {group.duration}</p>
-        </div>
-        <button
-          onClick={() => toggleGroupStatus(group.id)}
-          className={`status-switch ${group.active ? 'active' : 'inactive'}`}
-        >
-          <span className="switch-knob"></span>
-        </button>
-        <span className={`status-label ${group.active ? 'active' : 'inactive'}`}>
-          {group.active ? 'FAOL' : 'FAOL EMAS'}
-        </span>
-      </div>
-
-      {/* Stat Cards */}
-      <div className="stats-grid" style={{ marginBottom: '24px' }}>
-        <div className="group-stat-card">
-          <div style={{ color: '#7c3aed', marginBottom: '8px' }}><FaUserGraduate size={22} /></div>
-          <p className="stat-title" style={{ textAlign: 'left' }}>Talabalar</p>
-          <h3 className="stat-value">{groupStudents.length}</h3>
-        </div>
-        <div className="group-stat-card">
-          <div style={{ color: '#3b82f6', marginBottom: '8px' }}><FaChalkboardTeacher size={22} /></div>
-          <p className="stat-title" style={{ textAlign: 'left' }}>O'qituvchi</p>
-          <h3 className="stat-value" style={{ fontSize: '18px' }}>{group.teacher || '—'}</h3>
-        </div>
-        <div className="group-stat-card">
-          <div style={{ color: '#f59e0b', marginBottom: '8px' }}><FiClock size={22} /></div>
-          <p className="stat-title" style={{ textAlign: 'left' }}>Dars vaqti</p>
-          <h3 className="stat-value" style={{ fontSize: '18px' }}>{group.time}</h3>
-        </div>
-        <div className="group-stat-card">
-          <div style={{ color: '#10b981', marginBottom: '8px' }}><FiMapPin size={22} /></div>
-          <p className="stat-title" style={{ textAlign: 'left' }}>Xona</p>
-          <h3 className="stat-value" style={{ fontSize: '18px' }}>{group.room || '—'}</h3>
-        </div>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '4px', borderBottom: '2px solid #f3f4f6', marginBottom: '24px' }}>
-        {tabs.map(tab => (
+      <div style={{ display: 'flex', gap: '32px', borderBottom: '1px solid #e5e7eb', marginBottom: '24px' }}>
+        {[
+          { id: 'malumotlar', label: "Ma'lumotlar" },
+          { id: 'darsliklar', label: 'Guruh darsliklari' },
+          { id: 'davomat', label: 'Akademik davomati' }
+        ].map(tab => (
           <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
             style={{
-              padding: '10px 20px',
-              fontWeight: 600,
-              fontSize: '14px',
-              border: 'none',
+              padding: '12px 0',
               background: 'none',
+              border: 'none',
+              borderBottom: activeTab === tab.id ? '2px solid #7c3aed' : '2px solid transparent',
+              color: activeTab === tab.id ? '#7c3aed' : '#6b7280',
+              fontWeight: '600',
+              fontSize: '15px',
               cursor: 'pointer',
-              color: activeTab === tab.key ? '#7c3aed' : '#6b7280',
-              borderBottom: activeTab === tab.key ? '2px solid #7c3aed' : '2px solid transparent',
-              marginBottom: '-2px',
-              transition: 'all 0.2s',
+              marginBottom: '-1px',
+              transition: 'all 0.2s'
             }}
           >
             {tab.label}
@@ -123,158 +91,167 @@ const GroupDetails = () => {
         ))}
       </div>
 
-      {/* Tab: Talabalar */}
-      {activeTab === 'talabalar' && (
-        <div className="content-card">
-          <div className="table-header">
-            <h2 className="table-title">O'quvchilar ro'yxati</h2>
-            <button className="add-btn" onClick={() => setIsModalOpen(true)}>
-              + Talaba qo'shish
-            </button>
-          </div>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>F.I.SH</th>
-                <th>Telefon raqami</th>
-                <th>Qo'shilgan sana</th>
-                <th>Amallar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {groupStudents.length > 0 ? groupStudents.map((student, i) => (
-                <tr key={student.id}>
-                  <td>{i + 1}</td>
-                  <td style={{ fontWeight: 600 }}>{student.name}</td>
-                  <td>{student.phone}</td>
-                  <td>{student.createdAt}</td>
-                  <td>
-                    <button
-                      onClick={() => deleteStudent(student.id)}
-                      style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
-                    >
-                      <FiTrash2 size={16} />
-                    </button>
-                  </td>
-                </tr>
-              )) : (
-                <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>
-                    Bu guruhda hali talaba yo'q
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Tab: Jadval */}
-      {activeTab === 'jadval' && (
-        <div className="content-card">
-          <h2 className="table-title" style={{ marginBottom: '24px' }}>Dars Jadvali</h2>
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            {DAYS.map(day => {
-              const isActive = ['Du', 'Se', 'Chor', 'Pay', 'Ju'].includes(day);
-              return (
-                <div
-                  key={day}
-                  style={{
-                    width: '80px', height: '80px',
-                    borderRadius: '12px',
-                    display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center', gap: '4px',
-                    background: isActive ? '#7c3aed' : '#f3f4f6',
-                    color: isActive ? 'white' : '#9ca3af',
-                    fontWeight: 600,
-                    fontSize: '14px',
-                  }}
-                >
-                  <span>{day}</span>
-                  {isActive && <span style={{ fontSize: '11px', opacity: 0.85 }}>{group.time}</span>}
-                </div>
-              );
-            })}
-          </div>
-          <div style={{ marginTop: '32px', padding: '20px', background: '#f9fafb', borderRadius: '12px' }}>
-            <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
-              <div>
-                <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Dars davomiyligi</p>
-                <p style={{ fontWeight: 700 }}>{group.duration}</p>
+      {activeTab === 'malumotlar' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Top Cards Row */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+            
+            {/* Mentors Card */}
+            <div style={{ backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+              <div style={{ 
+                backgroundColor: '#3b82f6', color: 'white', padding: '16px 20px', 
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center' 
+              }}>
+                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '600' }}>Guruh mentorlari</h3>
+                <FiX size={18} style={{ cursor: 'pointer', opacity: 0.8 }} />
               </div>
-              <div>
-                <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Dars vaqti</p>
-                <p style={{ fontWeight: 700 }}>{group.time}</p>
-              </div>
-              <div>
-                <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Xona</p>
-                <p style={{ fontWeight: 700 }}>{group.room || '—'}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Tab: Guruh haqida */}
-      {activeTab === 'haqqida' && (
-        <div className="content-card">
-          <h2 className="table-title" style={{ marginBottom: '24px' }}>Guruh ma'lumotlari</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            {[
-              { label: 'Guruh nomi', value: group.name, icon: <FaUsers /> },
-              { label: 'Kurs', value: group.course, icon: <FiBook /> },
-              { label: "O'qituvchi", value: group.teacher || '—', icon: <FaChalkboardTeacher /> },
-              { label: 'Davomiyligi', value: group.duration, icon: <FiClock /> },
-              { label: 'Xona', value: group.room, icon: <FiMapPin /> },
-              { label: 'Dars vaqti', value: group.time, icon: <FiClock /> },
-            ].map(item => (
-              <div key={item.label} style={{ padding: '16px', background: '#f9fafb', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ color: '#7c3aed', fontSize: '18px' }}>{item.icon}</div>
-                <div>
-                  <p style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '2px' }}>{item.label}</p>
-                  <p style={{ fontWeight: 600, fontSize: '15px' }}>{item.value}</p>
+              <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <img 
+                    src="https://ui-avatars.com/api/?name=Teacher&background=random&color=fff" 
+                    alt="Teacher" 
+                    style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover' }} 
+                  />
+                  <div>
+                    <div style={{ color: '#10b981', fontSize: '13px', fontWeight: '600', marginBottom: '2px' }}>Teacher</div>
+                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#111827' }}>{group.teacher || '—'}</div>
+                  </div>
                 </div>
               </div>
-            ))}
+            </div>
+
+            {/* Parameters Card */}
+            <div style={{ backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+              <div style={{ 
+                backgroundColor: '#3b82f6', color: 'white', padding: '16px 20px', 
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center' 
+              }}>
+                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '600' }}>Parametrlar</h3>
+                <FiX size={18} style={{ cursor: 'pointer', opacity: 0.8 }} />
+              </div>
+              <div style={{ padding: '4px 24px' }}>
+                {[
+                  { label: 'Kurs:', value: group.course },
+                  { label: "O'rta yosh:", value: '21' },
+                  { label: "O'quvchilar sig'imi:", value: '20' },
+                  { label: "Mavjud o'quvchilar:", value: groupStudents.length },
+                  { label: "O'quv oyidagi darslar soni:", value: '20' },
+                  { label: 'Kurs davomiyligi (oy):', value: durationNumber },
+                  { label: 'Jami darslar soni:', value: '20' },
+                ].map((item, idx) => (
+                  <div key={idx} style={{ 
+                    display: 'flex', justifyContent: 'space-between', 
+                    padding: '12px 0', borderBottom: idx !== 6 ? '1px solid #f3f4f6' : 'none',
+                    fontSize: '13px'
+                  }}>
+                    <span style={{ color: '#6b7280' }}>{item.label}</span>
+                    <span style={{ fontWeight: '700', color: '#111827' }}>{item.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+          </div>
+
+          {/* Dars jadvali */}
+          <div style={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '32px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#111827', marginBottom: '24px' }}>Dars jadvali</h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ 
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+                padding: '16px 24px', backgroundColor: '#f8fafc', borderRadius: '8px',
+                fontSize: '14px', color: '#4b5563'
+              }}>
+                <span style={{ fontWeight: 'bold', color: '#3b82f6', width: '20%' }}>Mohirbek</span>
+                <span style={{ width: '15%' }}>Du/Se/Ch/Pa/Ju</span>
+                <span style={{ width: '25%' }}>09:30 dan - 12:30 gacha</span>
+                <span style={{ width: '25%' }}>15 Yan, 2026 - 27 Iyun, 2026</span>
+                <span style={{ width: '15%', textAlign: 'right' }}>F2 Autodesk // 18</span>
+              </div>
+              <div style={{ 
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+                padding: '16px 24px', backgroundColor: '#f8fafc', borderRadius: '8px',
+                fontSize: '14px', color: '#4b5563'
+              }}>
+                <span style={{ fontWeight: 'bold', color: '#3b82f6', width: '20%' }}>+++Yusupova Barchinoy</span>
+                <span style={{ width: '15%' }}>Du/Se/Ch/Pa/Ju</span>
+                <span style={{ width: '25%' }}>08:00 dan - 09:30 gacha</span>
+                <span style={{ width: '25%' }}>15 Yan, 2026 - 27 Iyun, 2026</span>
+                <span style={{ width: '15%', textAlign: 'right' }}>F2 Autodesk // 18</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px', marginBottom: '32px' }}>
+              <button style={{ 
+                padding: '8px 24px', backgroundColor: 'white', border: '1px solid #e5e7eb', 
+                borderRadius: '8px', cursor: 'pointer', fontSize: '14px', color: '#4b5563', fontWeight: '500'
+              }}>
+                Yana ko'rsatish (9)
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+              <button style={{ 
+                width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'white', 
+                border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                cursor: 'pointer', color: '#9ca3af'
+              }}>
+                <FiChevronLeft size={16} />
+              </button>
+              <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#111827' }}>1-o'quv oyi</h4>
+              <button style={{ 
+                width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'white', 
+                border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                cursor: 'pointer', color: '#9ca3af'
+              }}>
+                <FiChevronLeft size={16} style={{ transform: 'rotate(180deg)' }} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '32px' }}>
+              {[
+                { date: 2, past: true }, { date: 5, past: true }, { date: 7, past: true },
+                { date: 9, past: true }, { date: 12, past: true }, { date: 14, past: true }, { date: 16, past: true },
+                { date: 19, past: false }, { date: 21, past: false }, { date: 23, past: false },
+                { date: 26, past: false }, { date: 28, past: false }, { date: 30, past: false }
+              ].map((item, idx) => (
+                <div key={idx} style={{ 
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                  width: '56px', height: '64px', borderRadius: '8px',
+                  backgroundColor: item.past ? '#e2e8f0' : 'white',
+                  border: item.past ? '1px solid transparent' : '1px solid #e5e7eb',
+                  color: item.past ? '#64748b' : '#334155'
+                }}>
+                  <span style={{ fontSize: '12px', fontWeight: '600' }}>May</span>
+                  <span style={{ fontSize: '16px', fontWeight: 'bold' }}>{item.date}</span>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <button style={{ 
+                padding: '10px 32px', backgroundColor: 'white', border: '1px solid #e5e7eb', 
+                borderRadius: '8px', cursor: 'pointer', fontSize: '14px', color: '#4b5563', fontWeight: '500'
+              }}>
+                Barchasini ko'rish
+              </button>
+            </div>
           </div>
         </div>
       )}
+      
+      {activeTab === 'darsliklar' && (
+         <div style={{ padding: '60px 20px', textAlign: 'center', color: '#9ca3af', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px dashed #e5e7eb' }}>
+            <p>Bu guruh uchun darsliklar hali yuklanmagan.</p>
+         </div>
+      )}
 
-      {/* Add Student Drawer */}
-      <div className={`right-drawer-overlay ${isModalOpen ? 'open' : ''}`} onClick={() => setIsModalOpen(false)}>
-        <div className={`right-drawer ${isModalOpen ? 'open' : ''}`} onClick={e => e.stopPropagation()}>
-          <div className="drawer-header">
-            <h2 className="drawer-title">Talaba qo'shish</h2>
-            <button className="drawer-close" onClick={() => setIsModalOpen(false)}><FiX /></button>
-          </div>
-          <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '24px' }}>
-            <strong>{group.name}</strong> guruhiga yangi talaba qo'shing.
-          </p>
-          <form onSubmit={handleAddStudent} style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-            <div className="form-group">
-              <label className="form-label">F.I.SH</label>
-              <input
-                type="text" required placeholder="Talaba to'liq ismi"
-                value={newStudent.name} onChange={e => setNewStudent({ ...newStudent, name: e.target.value })}
-                className="form-input"
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Telefon raqami</label>
-              <input
-                type="text" required placeholder="+998 90 123 45 67"
-                value={newStudent.phone} onChange={e => setNewStudent({ ...newStudent, phone: e.target.value })}
-                className="form-input"
-              />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'auto', paddingTop: '24px', borderTop: '1px solid #f3f4f6' }}>
-              <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary" style={{ width: '48%' }}>Bekor qilish</button>
-              <button type="submit" className="btn-primary" style={{ width: '48%' }}>Saqlash</button>
-            </div>
-          </form>
-        </div>
-      </div>
+      {activeTab === 'davomat' && (
+         <div style={{ padding: '60px 20px', textAlign: 'center', color: '#9ca3af', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px dashed #e5e7eb' }}>
+            <p>Bu guruh uchun akademik davomat ma'lumotlari mavjud emas.</p>
+         </div>
+      )}
     </div>
   );
 };
