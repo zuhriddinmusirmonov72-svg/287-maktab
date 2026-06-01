@@ -46,8 +46,27 @@ const apiForm = axios.create({
 apiForm.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  // FormData: Content-Type ni o'chiramiz — brauzer boundary bilan qo'yadi
+  if (config.data instanceof FormData) {
+    if (config.headers?.set) {
+      config.headers.set("Content-Type", undefined);
+    } else if (config.headers) {
+      delete config.headers["Content-Type"];
+      delete config.headers["content-type"];
+    }
+  }
   return config;
 });
+apiForm.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem("token");
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  }
+);
 
 // =============================================
 // 🔐 AUTH — /api/v1/auth/login
@@ -193,41 +212,41 @@ export const homeworkAPI = {
 // =============================================
 // 📁 FILES — /api/v1/files
 // =============================================
+export const parseApiError = async (error) => {
+  const data = error?.response?.data;
+  if (!data) return error?.message || "Xato yuz berdi";
+  if (data instanceof Blob) {
+    try {
+      const json = JSON.parse(await data.text());
+      if (Array.isArray(json.message)) return json.message.join(", ");
+      return json.message || json.error || "Xato yuz berdi";
+    } catch {
+      return "Xato yuz berdi";
+    }
+  }
+  if (Array.isArray(data.message)) return data.message.join(", ");
+  if (typeof data.message === "string") return data.message;
+  return data.error || "Xato yuz berdi";
+};
+
 export const filesAPI = {
   getFiles: (groupId) => api.get(`/files/${groupId}`),
-  // Video ko'rish: GET /files/group/{groupId}/upload?lessonId={lessonId}
-  viewVideo: (groupId, lessonId, fileId) =>
-    api.get(`/files/group/${groupId}/upload`, {
-      params: {
-        lessonId: Number(lessonId),
-        ...(fileId ? { fileId: Number(fileId) } : {}),
-      },
-      responseType: "blob",
-    }),
-  getBlob: (path) => {
-    if (!path) return Promise.reject(new Error("Path topilmadi"));
-    const token = localStorage.getItem("token");
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-    if (path.startsWith("http")) {
-      return axios.get(path, { responseType: "blob", headers });
-    }
-    if (path.startsWith("/uploads") || path.startsWith("/static")) {
-      return axios.get(`${BASE_URL.replace("/api/v1", "")}${path}`, {
-        responseType: "blob",
-        headers,
-      });
-    }
-    const apiPath = path.startsWith("/api/v1")
-      ? path.replace("/api/v1", "")
-      : path;
-    return api.get(apiPath, { responseType: "blob" });
-  },
+  // Video ko'rish: GET /files/{fileId}
+  getOne: (fileId) =>
+    api.get(`/files/${fileId}`, { responseType: "blob" }),
   // Video yuklash: POST /files/group/{groupId}/upload?lessonId={lessonId}
-  upload: (groupId, lessonId, formData) =>
-    apiForm.post(`/files/group/${groupId}/upload`, formData, {
-      params: { lessonId: Number(lessonId) },
-    }),
+  upload: (groupId, lessonId, file) => {
+    const formData = new FormData();
+    formData.append("file", file, file.name || "video.mp4");
+    const gid = Number(groupId);
+    const lid = Number(lessonId);
+    return apiForm.post(`/files/group/${gid}/upload`, formData, {
+      params: { lessonId: lid },
+      timeout: 600000,
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+    });
+  },
 };
 
 export default api;

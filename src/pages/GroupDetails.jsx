@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { FiChevronLeft, FiBarChart2, FiX, FiMoreVertical } from 'react-icons/fi';
 import { FaUser, FaClock, FaCheck, FaPlay } from 'react-icons/fa';
 import toast from 'react-hot-toast';
-import { groupsAPI, homeworkAPI, lessonsAPI, filesAPI } from '../api/api';
+import { groupsAPI, homeworkAPI, lessonsAPI, filesAPI, parseApiError } from '../api/api';
 
 const TAB_MAP = { malumotlar: 0, darsliklar: 1, davomat: 2 };
 const TAB_BY_INDEX = ['malumotlar', 'darsliklar', 'davomat'];
@@ -53,16 +53,38 @@ const parseFilesResponse = (res, groupId) => {
   else if (body?.data && typeof body.data === 'object') {
     if (Array.isArray(body.data.files)) list = body.data.files;
     else list = Object.values(body.data).flat().filter((x) => x && typeof x === 'object');
+  } else if (body && typeof body === 'object' && !Array.isArray(body)) {
+    list = [body];
   }
 
-  if (groupId) {
-    const filtered = list.filter(
-      (f) => !f.group_id || !f.groupId || String(f.group_id || f.groupId) === String(groupId)
-    );
-    if (filtered.length > 0) list = filtered;
+  const flattened = [];
+  for (const item of list) {
+    if (Array.isArray(item.files)) {
+      item.files.forEach((f) =>
+        flattened.push({
+          ...f,
+          lesson_id: f.lesson_id || f.lessonId || item.lesson_id || item.id,
+          lesson: f.lesson || item,
+        })
+      );
+    } else if (item.file && typeof item.file === 'object') {
+      flattened.push({
+        ...item.file,
+        lesson_id: item.lesson_id || item.id,
+        lesson: item,
+      });
+    } else {
+      flattened.push(item);
+    }
   }
 
-  return list;
+  return flattened
+    .map((f) => ({
+      ...f,
+      group_id: f.group_id || f.groupId || groupId,
+      lesson_id: f.lesson_id || f.lessonId || f.lesson?.id,
+    }))
+    .filter((f) => !groupId || !f.group_id || String(f.group_id) === String(groupId));
 };
 
 const getHomeworkTopic = (item) =>
@@ -93,9 +115,9 @@ const emptyHomeworkForm = {
 const emptyVideoForm = {
   lesson_id: '',
   file: null,
+  new_lesson_topic: '',
+  create_new_lesson: false,
 };
-
-const FILE_BASE_URL = 'https://najot-edu.softwareengineer.uz';
 
 const formatFileSize = (bytes) => {
   if (!bytes && bytes !== 0) return '—';
@@ -113,42 +135,6 @@ const getVideoName = (file) =>
   file.originalName ||
   file.title ||
   '—';
-
-const getVideoPath = (file) => {
-  const raw =
-    file.url ||
-    file.file_url ||
-    file.fileUrl ||
-    file.path ||
-    file.file_path ||
-    file.filePath ||
-    file.link ||
-    file.file ||
-    file.storage_path ||
-    file.location;
-
-  if (raw) {
-    if (raw.startsWith('http')) return raw;
-    if (raw.startsWith('/api/v1')) return raw;
-    if (raw.startsWith('/uploads') || raw.startsWith('/static')) return raw;
-    if (raw.startsWith('/')) return `/api/v1${raw}`;
-    return `/api/v1/${raw}`;
-  }
-
-  if (file.id) return `/api/v1/files/${file.id}`;
-  return null;
-};
-
-const getVideoUrl = (file) => {
-  const path = getVideoPath(file);
-  if (!path) return null;
-  if (path.startsWith('http')) return path;
-  if (path.startsWith('/uploads') || path.startsWith('/static')) {
-    return `${FILE_BASE_URL}${path}`;
-  }
-  if (path.startsWith('/api/v1')) return `${FILE_BASE_URL}${path}`;
-  return `${FILE_BASE_URL}/api/v1${path.startsWith('/') ? '' : '/'}${path}`;
-};
 
 const getLessonName = (file) =>
   file.lesson?.topic || file.lesson_name || file.lesson_topic || file.topic || '—';
@@ -385,27 +371,11 @@ const GroupDetails = () => {
   const fetchVideoList = async () => {
     setDarsliklarLoading(true);
     try {
-      let list = [];
-      try {
-        const res = await filesAPI.getFiles(id);
-        list = parseFilesResponse(res, id);
-      } catch (groupErr) {
-        console.warn('Guruh videolari:', groupErr.response?.data || groupErr.message);
-      }
-
-      if (list.length === 0) {
-        try {
-          const allRes = await filesAPI.getAll();
-          list = parseFilesResponse(allRes, id);
-        } catch (allErr) {
-          console.warn('Barcha videolar:', allErr.response?.data || allErr.message);
-        }
-      }
-
-      setMediaList(list);
+      const res = await filesAPI.getFiles(id);
+      setMediaList(parseFilesResponse(res, id));
     } catch (err) {
       console.error('Videolar xato:', err.response?.data || err.message);
-      toast.error('Videolarni yuklashda xato!');
+      toast.error(err.response?.data?.message || 'Videolarni yuklashda xato!');
       setMediaList([]);
     } finally {
       setDarsliklarLoading(false);
@@ -419,25 +389,47 @@ const GroupDetails = () => {
 
   const openVideoPlayer = async (file) => {
     setOpenVideoMenuId(null);
-    const path = getVideoPath(file);
-    if (!path) {
-      toast.error('Video manzili topilmadi!');
+
+    const fileId = file.id ?? file.file_id ?? file.fileId;
+    if (!fileId) {
+      toast.error('Video ID topilmadi!');
       return;
     }
 
     setVideoPlayerLoading(true);
     try {
-      const res = await filesAPI.getBlob(path);
-      const blobUrl = URL.createObjectURL(res.data);
+      const res = await filesAPI.getOne(fileId);
+      const contentType = res.headers['content-type'] || 'video/mp4';
+
+      if (contentType.includes('application/json')) {
+        const text = await res.data.text();
+        const json = JSON.parse(text);
+        throw new Error(json.message || 'Video topilmadi');
+      }
+
+      const blob =
+        res.data instanceof Blob
+          ? res.data
+          : new Blob([res.data], { type: contentType });
+      const blobUrl = URL.createObjectURL(blob);
       setPlayingVideo({ name: getVideoName(file), blobUrl });
     } catch (err) {
-      console.error('Video ochish xato:', err.response?.data || err.message);
-      const directUrl = getVideoUrl(file);
-      if (directUrl) {
-        window.open(directUrl, '_blank');
-      } else {
-        toast.error('Videoni ochib bo\'lmadi!');
+      console.error('Video ochish xato:', err.response?.status, err.response?.data);
+      let message = "Videoni ochib bo'lmadi!";
+      if (err.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const json = JSON.parse(text);
+          message = json.message || message;
+        } catch {
+          // ignore
+        }
+      } else if (err.response?.data?.message) {
+        message = err.response.data.message;
+      } else if (err.message) {
+        message = err.message;
       }
+      toast.error(message);
     } finally {
       setVideoPlayerLoading(false);
     }
@@ -457,31 +449,88 @@ const GroupDetails = () => {
   const handleVideoUpload = async (e) => {
     e.preventDefault();
 
-    if (!videoForm.lesson_id) {
-      toast.error('Darsni tanlang!');
-      return;
-    }
     if (!videoForm.file) {
       toast.error('Video faylni tanlang!');
       return;
     }
 
+    const maxSizeMb = 500;
+    if (videoForm.file.size > maxSizeMb * 1024 * 1024) {
+      toast.error(`Video hajmi ${maxSizeMb}MB dan oshmasligi kerak!`);
+      return;
+    }
+
     setIsVideoSubmitting(true);
     try {
-      const formData = new FormData();
-      formData.append('file', videoForm.file);
+      let lessonId = videoForm.lesson_id;
 
-      await filesAPI.upload(id, videoForm.lesson_id, formData);
+      if (videoForm.create_new_lesson) {
+        if (!videoForm.new_lesson_topic.trim()) {
+          toast.error('Yangi dars mavzusini kiriting!');
+          return;
+        }
+        try {
+          const lessonRes = await groupsAPI.createLesson(id, {
+            group_id: Number(id),
+            topic: videoForm.new_lesson_topic.trim(),
+            description: videoForm.file.name,
+          });
+          const created = lessonRes.data?.data || lessonRes.data;
+          lessonId = created?.id;
+        } catch {
+          const lessonRes = await lessonsAPI.create({
+            group_id: Number(id),
+            topic: videoForm.new_lesson_topic.trim(),
+            description: videoForm.file.name,
+          });
+          const created = lessonRes.data?.data || lessonRes.data;
+          lessonId = created?.id;
+        }
+        if (!lessonId) {
+          toast.error('Dars yaratilmadi. Avval mavjud darsni tanlang.');
+          return;
+        }
+      } else if (!lessonId) {
+        toast.error('Darsni tanlang yoki «Yangi dars yaratish» ni belgilang!');
+        return;
+      }
+
+      const groupId = Number(id);
+      const lessonIdNum = Number(lessonId);
+
+      const res = await filesAPI.upload(groupId, lessonIdNum, videoForm.file);
+      const uploaded = res.data?.data ?? res.data;
+
       toast.success("Video muvaffaqiyatli qo'shildi!");
       resetVideoForm();
-      fetchVideoList();
-    } catch (err) {
-      const errData = err.response?.data;
-      if (errData?.message && Array.isArray(errData.message)) {
-        errData.message.forEach((m) => toast.error(m, { duration: 6000 }));
-      } else {
-        toast.error(errData?.message || errData?.error || 'Yuklashda xato!', { duration: 6000 });
+
+      const item = uploaded
+        ? (Array.isArray(uploaded) ? uploaded[0] : uploaded)
+        : null;
+
+      if (item) {
+        setMediaList((prev) => [
+          ...prev,
+          {
+            ...item,
+            id: item.id ?? item.file_id ?? item.fileId,
+            group_id: groupId,
+            lesson_id: lessonIdNum,
+            name:
+              item.name ||
+              item.filename ||
+              item.fileName ||
+              videoForm.file.name,
+          },
+        ]);
       }
+
+      await fetchVideoList();
+      await fetchGroupLessons();
+    } catch (err) {
+      console.error('Video yuklash xato:', err.response?.status, err.response?.data);
+      const message = await parseApiError(err);
+      toast.error(message, { duration: 6000 });
     } finally {
       setIsVideoSubmitting(false);
     }
@@ -1362,28 +1411,57 @@ const GroupDetails = () => {
           style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}
         >
           <div className="form-group">
-            <label className="form-label">
-              Dars <span style={{ color: 'red' }}>*</span>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={videoForm.create_new_lesson}
+                onChange={(e) => setVideoForm({
+                  ...videoForm,
+                  create_new_lesson: e.target.checked,
+                  lesson_id: e.target.checked ? '' : videoForm.lesson_id,
+                })}
+              />
+              <span className="form-label" style={{ margin: 0 }}>Yangi dars yaratish</span>
             </label>
-            <select
-              required
-              className="form-input"
-              value={videoForm.lesson_id}
-              onChange={(e) => setVideoForm({ ...videoForm, lesson_id: e.target.value })}
-            >
-              <option value="">— Dars tanlang —</option>
-              {groupLessons.map((lesson) => (
-                <option key={lesson.id} value={lesson.id}>
-                  {lesson.topic || lesson.title || `Dars #${lesson.id}`}
-                </option>
-              ))}
-            </select>
-            {groupLessons.length === 0 && (
-              <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '6px' }}>
-                Avval dars yarating (Uyga vazifa bo'limida)
-              </p>
-            )}
           </div>
+
+          {videoForm.create_new_lesson ? (
+            <div className="form-group">
+              <label className="form-label">
+                Dars mavzusi <span style={{ color: 'red' }}>*</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Nodejs"
+                className="form-input"
+                value={videoForm.new_lesson_topic}
+                onChange={(e) => setVideoForm({ ...videoForm, new_lesson_topic: e.target.value })}
+              />
+            </div>
+          ) : (
+            <div className="form-group">
+              <label className="form-label">
+                Dars <span style={{ color: 'red' }}>*</span>
+              </label>
+              <select
+                className="form-input"
+                value={videoForm.lesson_id}
+                onChange={(e) => setVideoForm({ ...videoForm, lesson_id: e.target.value })}
+              >
+                <option value="">— Dars tanlang —</option>
+                {groupLessons.map((lesson) => (
+                  <option key={lesson.id} value={lesson.id}>
+                    {lesson.topic || lesson.title || `Dars #${lesson.id}`}
+                  </option>
+                ))}
+              </select>
+              {groupLessons.length === 0 && (
+                <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '6px' }}>
+                  Darslar yo&apos;q — «Yangi dars yaratish» ni belgilang
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="form-group">
             <label className="form-label">
