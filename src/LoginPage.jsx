@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import './index.css';
-import Registe from "./assets/logo.svg"; 
+import Registe from "./assets/logo.svg";
 
 const LoginPage = ({ onLogin }) => {
   const [login, setLogin] = useState("");
@@ -26,10 +26,10 @@ const LoginPage = ({ onLogin }) => {
             MUHAMMAD AL-XORAZMIY NOMIDAGI <br /> TOSHKENT AXBOROT TEXNOLOGIYALARI <br /> UNIVERSITETI
           </p>
           <div className="login-logo">
-            <img 
-              src="https://lms.tuit.uz/assets/images/logo-md.png" 
-              alt="Logo" 
-              style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+            <img
+              src="https://lms.tuit.uz/assets/images/logo-md.png"
+              alt="Logo"
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
             />
           </div>
           <h2 className="login-main-title">LEARNING MANAGEMENT SYSTEM</h2>
@@ -37,23 +37,25 @@ const LoginPage = ({ onLogin }) => {
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label className="form-label">Login</label>
-              <input 
-                className="form-input" 
-                type="text" 
-                placeholder="Loginni kiriting" 
-                value={login} 
-                onChange={(e) => setLogin(e.target.value)} 
+              <input
+                className="form-input"
+                type="text"
+                placeholder="Loginni kiriting"
+                value={login}
+                onChange={(e) => setLogin(e.target.value)}
               />
             </div>
 
+
+
             <div className="form-group">
               <label className="form-label">Parol</label>
-              <input 
-                className="form-input" 
-                type="password" 
-                placeholder="Parolni kiriting" 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
+              <input
+                className="form-input"
+                type="password"
+                placeholder="Parolni kiriting"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
 

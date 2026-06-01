@@ -11,6 +11,7 @@ import Courses from './pages/Courses';
 import Rooms from './pages/Rooms';
 import Students from './pages/Students';
 import GroupDetails from './pages/GroupDetails';
+import HomeworkSubmit from './pages/HomeworkSubmit';
 import Layout from './components/Layout';
 
 function App() {
@@ -26,10 +27,11 @@ function App() {
             <Route path="teachers" element={<Teachers />} />
             <Route path="groups" element={<Groups />} />
             <Route path="groups/:id" element={<GroupDetails />} />
+            <Route path="homework/:homeworkId/submit" element={<HomeworkSubmit />} />
             <Route path="courses" element={<Courses />} />
             <Route path="rooms" element={<Rooms />} />
             <Route path="students" element={<Students />} />
-            <Route path="management" element={<Management />} />
+              <Route path="management" element={<Management />} />
             <Route path="profile" element={<Profile />} />
           </Route>
         </Routes>
