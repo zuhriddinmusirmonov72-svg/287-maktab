@@ -11,7 +11,10 @@ import Courses from './pages/Courses';
 import Rooms from './pages/Rooms';
 import Students from './pages/Students';
 import GroupDetails from './pages/GroupDetails';
+import GroupLesson from './pages/GroupLesson';
 import HomeworkSubmit from './pages/HomeworkSubmit';
+import HomeworkOwn from './pages/HomeworkOwn';
+import HomeworkAll from './pages/HomeworkAll';
 import Layout from './components/Layout';
 
 function App() {
@@ -22,17 +25,20 @@ function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/dashboard" element={<Layout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="teachers" element={<Teachers />} />
-            <Route path="groups" element={<Groups />} />
-            <Route path="groups/:id" element={<GroupDetails />} />
-            <Route path="homework/:homeworkId/submit" element={<HomeworkSubmit />} />
-            <Route path="courses" element={<Courses />} />
-            <Route path="rooms" element={<Rooms />} />
-            <Route path="students" element={<Students />} />
-              <Route path="management" element={<Management />} />
-            <Route path="profile" element={<Profile />} />
+          <Route element={<Layout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/teachers" element={<Teachers />} />
+            <Route path="/groups" element={<Groups />} />
+            <Route path="/groups/:id" element={<GroupDetails />} />
+            <Route path="/groups/:groupId/lesson/:date" element={<GroupLesson />} />
+            <Route path="/homework/:homeworkId/submit" element={<HomeworkSubmit />} />
+            <Route path="/lesson/:lessonId/homework" element={<HomeworkOwn />} />
+            <Route path="/courses" element={<Courses />} />
+            <Route path="/rooms" element={<Rooms />} />
+            <Route path="/students" element={<Students />} />
+            <Route path="/homework" element={<HomeworkAll />} />
+            <Route path="/management" element={<Management />} />
+            <Route path="/profile" element={<Profile />} />
           </Route>
         </Routes>
       </BrowserRouter>

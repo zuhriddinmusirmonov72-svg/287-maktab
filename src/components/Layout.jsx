@@ -8,7 +8,10 @@ const Layout = () => {
 
   return (
     <div className="layout-wrapper">
-      <Sidebar isOpen={isSidebarOpen} />
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+      />
       <div className="layout-content">
         <Navbar toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
         <main className="main-content">

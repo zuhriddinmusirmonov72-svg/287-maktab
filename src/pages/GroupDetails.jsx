@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { FiChevronLeft, FiBarChart2, FiX, FiMoreVertical } from 'react-icons/fi';
+import { FiChevronLeft, FiBarChart2, FiX, FiMoreVertical, FiTrash2 } from 'react-icons/fi';
 import { FaUser, FaClock, FaCheck, FaPlay } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { groupsAPI, homeworkAPI, lessonsAPI, filesAPI, parseApiError } from '../api/api';
@@ -295,8 +295,15 @@ const GroupDetails = () => {
   const handleHomeworkSubmit = async (e) => {
     e.preventDefault();
 
-    if (!homeworkForm.title.trim()) {
-      toast.error('Mavzuni kiriting!');
+    // Yangi formada title = description yoki dars nomi
+    const titleValue = (homeworkForm.title || '').trim()
+      || (homeworkForm.description || '').trim()
+      || (homeworkForm.create_new_lesson
+          ? homeworkForm.new_lesson_topic.trim()
+          : groupLessons.find(l => String(l.id) === String(homeworkForm.lesson_id))?.topic || '');
+
+    if (!titleValue) {
+      toast.error('Izoh yoki mavzu kiriting!');
       return;
     }
 
@@ -308,7 +315,7 @@ const GroupDetails = () => {
         return;
       }
     } else if (!lessonId) {
-      toast.error('Darsni tanlang yoki yangi dars yarating!');
+      toast.error('Mavzulardan birini tanlang!');
       return;
     }
 
@@ -318,7 +325,7 @@ const GroupDetails = () => {
         const lessonRes = await groupsAPI.createLesson(id, {
           group_id: Number(id),
           topic: homeworkForm.new_lesson_topic.trim(),
-          description: homeworkForm.title.trim(),
+          description: titleValue,
         });
         const createdLesson = lessonRes.data?.data || lessonRes.data;
         lessonId = createdLesson?.id;
@@ -328,7 +335,8 @@ const GroupDetails = () => {
       const formData = new FormData();
       formData.append('group_id', String(id));
       formData.append('lesson_id', String(lessonId));
-      formData.append('title', homeworkForm.title.trim());
+      formData.append('title', titleValue);
+      if (homeworkForm.description?.trim()) formData.append('description', homeworkForm.description.trim());
       if (homeworkForm.file) formData.append('file', homeworkForm.file);
 
       if (editingHomeworkId) {
@@ -447,90 +455,42 @@ const GroupDetails = () => {
   };
 
   const handleVideoUpload = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
 
-    if (!videoForm.file) {
-      toast.error('Video faylni tanlang!');
+    const files = videoForm.files || [];
+    if (files.length === 0) {
+      toast.error('Video fayllarni tanlang!');
       return;
     }
 
-    const maxSizeMb = 500;
-    if (videoForm.file.size > maxSizeMb * 1024 * 1024) {
-      toast.error(`Video hajmi ${maxSizeMb}MB dan oshmasligi kerak!`);
+    // Har bir faylda dars tanlangan bo'lishi kerak
+    const missing = files.find(item => !item.lesson_id);
+    if (missing) {
+      toast.error(`"${missing.file.name}" uchun darsni tanlang!`);
       return;
     }
 
     setIsVideoSubmitting(true);
+    let successCount = 0;
     try {
-      let lessonId = videoForm.lesson_id;
-
-      if (videoForm.create_new_lesson) {
-        if (!videoForm.new_lesson_topic.trim()) {
-          toast.error('Yangi dars mavzusini kiriting!');
-          return;
-        }
+      for (const item of files) {
+        const groupId = Number(id);
+        const lessonIdNum = Number(item.lesson_id);
         try {
-          const lessonRes = await groupsAPI.createLesson(id, {
-            group_id: Number(id),
-            topic: videoForm.new_lesson_topic.trim(),
-            description: videoForm.file.name,
-          });
-          const created = lessonRes.data?.data || lessonRes.data;
-          lessonId = created?.id;
-        } catch {
-          const lessonRes = await lessonsAPI.create({
-            group_id: Number(id),
-            topic: videoForm.new_lesson_topic.trim(),
-            description: videoForm.file.name,
-          });
-          const created = lessonRes.data?.data || lessonRes.data;
-          lessonId = created?.id;
+          await filesAPI.upload(groupId, lessonIdNum, item.file);
+          successCount++;
+        } catch (err) {
+          const msg = await parseApiError(err);
+          toast.error(`${item.file.name}: ${msg}`, { duration: 5000 });
         }
-        if (!lessonId) {
-          toast.error('Dars yaratilmadi. Avval mavjud darsni tanlang.');
-          return;
-        }
-      } else if (!lessonId) {
-        toast.error('Darsni tanlang yoki «Yangi dars yaratish» ni belgilang!');
-        return;
       }
 
-      const groupId = Number(id);
-      const lessonIdNum = Number(lessonId);
-
-      const res = await filesAPI.upload(groupId, lessonIdNum, videoForm.file);
-      const uploaded = res.data?.data ?? res.data;
-
-      toast.success("Video muvaffaqiyatli qo'shildi!");
-      resetVideoForm();
-
-      const item = uploaded
-        ? (Array.isArray(uploaded) ? uploaded[0] : uploaded)
-        : null;
-
-      if (item) {
-        setMediaList((prev) => [
-          ...prev,
-          {
-            ...item,
-            id: item.id ?? item.file_id ?? item.fileId,
-            group_id: groupId,
-            lesson_id: lessonIdNum,
-            name:
-              item.name ||
-              item.filename ||
-              item.fileName ||
-              videoForm.file.name,
-          },
-        ]);
+      if (successCount > 0) {
+        toast.success(`${successCount} ta video muvaffaqiyatli yuklandi!`);
+        resetVideoForm();
+        await fetchVideoList();
+        await fetchGroupLessons();
       }
-
-      await fetchVideoList();
-      await fetchGroupLessons();
-    } catch (err) {
-      console.error('Video yuklash xato:', err.response?.status, err.response?.data);
-      const message = await parseApiError(err);
-      toast.error(message, { duration: 6000 });
     } finally {
       setIsVideoSubmitting(false);
     }
@@ -604,7 +564,7 @@ const GroupDetails = () => {
     return (
       <div style={{ textAlign: 'center', paddingTop: '100px' }}>
         <h2>Guruh topilmadi</h2>
-        <button onClick={() => navigate('/dashboard/groups')}>
+        <button onClick={() => navigate('/groups')}>
           Orqaga
         </button>
       </div>
@@ -698,6 +658,142 @@ const GroupDetails = () => {
 
   return (
     <>
+    {/* UYGA VAZIFA TO'LIQ SAHIFA FORMASI */}
+    {isHomeworkDrawerOpen && (
+      <div style={{ padding: '32px 40px', background: '#fff', borderRadius: '12px', minHeight: '80vh' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
+          <button
+            type="button"
+            onClick={resetHomeworkForm}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
+          >
+            <FiChevronLeft size={22} color="#374151" />
+          </button>
+          <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 700, color: '#111827' }}>
+            {editingHomeworkId ? 'Uyga vazifani tahrirlash' : 'Yangi uyga vazifa yaratish'}
+          </h2>
+        </div>
+
+        <form onSubmit={handleHomeworkSubmit} style={{ maxWidth: '660px' }}>
+          {/* MAVZU */}
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', fontWeight: 600, fontSize: '13px', color: '#111827', marginBottom: '6px' }}>
+              * Mavzu
+            </label>
+            {homeworkForm.create_new_lesson ? (
+              <input
+                type="text"
+                required
+                placeholder="Yangi dars mavzusini kiriting"
+                value={homeworkForm.new_lesson_topic}
+                onChange={(e) => setHomeworkForm({ ...homeworkForm, new_lesson_topic: e.target.value })}
+                style={{ width: '100%', borderRadius: '8px', border: '1px solid #d1d5db', padding: '10px 14px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+              />
+            ) : (
+              <div style={{ position: 'relative' }}>
+                <select
+                  value={homeworkForm.lesson_id}
+                  onChange={(e) => setHomeworkForm({ ...homeworkForm, lesson_id: e.target.value })}
+                  style={{ width: '100%', borderRadius: '8px', border: '1px solid #d1d5db', padding: '10px 36px 10px 14px', fontSize: '14px', appearance: 'none', background: '#fff', cursor: 'pointer', outline: 'none', boxSizing: 'border-box', color: homeworkForm.lesson_id ? '#111827' : '#9ca3af' }}
+                >
+                  <option value="">Mavzulardan birini tanlang</option>
+                  {groupLessons.map((lesson) => (
+                    <option key={lesson.id} value={lesson.id}>
+                      {lesson.topic || lesson.title || `Dars #${lesson.id}`}
+                    </option>
+                  ))}
+                </select>
+                <span style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#6b7280', fontSize: '12px' }}>▼</span>
+              </div>
+            )}
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', cursor: 'pointer', fontSize: '13px', color: '#6b7280' }}>
+              <input
+                type="checkbox"
+                checked={homeworkForm.create_new_lesson}
+                onChange={(e) => setHomeworkForm({ ...homeworkForm, create_new_lesson: e.target.checked, lesson_id: '' })}
+              />
+              Yangi dars yaratish
+            </label>
+          </div>
+
+          {/* IZOH */}
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', fontWeight: 600, fontSize: '13px', color: '#111827', marginBottom: '6px' }}>
+              * Izoh
+            </label>
+            <div style={{ border: '1px solid #d1d5db', borderRadius: '8px', overflow: 'hidden' }}>
+              {/* Toolbar */}
+              <div style={{ padding: '7px 10px', display: 'flex', alignItems: 'center', gap: '4px', background: '#fafafa', borderBottom: '1px solid #e5e7eb', flexWrap: 'wrap' }}>
+                {['H1', 'H2'].map((h) => (
+                  <button key={h} type="button" style={{ padding: '2px 7px', border: '1px solid #e5e7eb', borderRadius: '4px', background: '#fff', fontSize: '11px', fontWeight: 700, cursor: 'pointer', color: '#374151' }}>{h}</button>
+                ))}
+                <span style={{ width: '1px', height: '16px', background: '#e5e7eb', margin: '0 2px' }} />
+                <select style={{ border: '1px solid #e5e7eb', borderRadius: '4px', fontSize: '11px', padding: '2px 4px', background: '#fff', cursor: 'pointer' }}>
+                  <option>Sans Serif</option><option>Serif</option><option>Monospace</option>
+                </select>
+                <select style={{ border: '1px solid #e5e7eb', borderRadius: '4px', fontSize: '11px', padding: '2px 4px', background: '#fff', cursor: 'pointer' }}>
+                  <option>Normal</option><option>Small</option><option>Large</option>
+                </select>
+                <span style={{ width: '1px', height: '16px', background: '#e5e7eb', margin: '0 2px' }} />
+                {[{ t: 'B', s: { fontWeight: 700 } }, { t: 'I', s: { fontStyle: 'italic' } }, { t: 'U', s: { textDecoration: 'underline' } }, { t: 'S', s: { textDecoration: 'line-through' } }].map(({ t, s }) => (
+                  <button key={t} type="button" style={{ padding: '2px 7px', border: '1px solid #e5e7eb', borderRadius: '4px', background: '#fff', fontSize: '12px', cursor: 'pointer', color: '#374151', ...s }}>{t}</button>
+                ))}
+                {['❝', '<>', '≡', '⊟', '⊞', '⊠', '🔗'].map((icon, i) => (
+                  <button key={i} type="button" style={{ padding: '2px 6px', border: '1px solid #e5e7eb', borderRadius: '4px', background: '#fff', fontSize: '12px', cursor: 'pointer', color: '#374151' }}>{icon}</button>
+                ))}
+              </div>
+              <textarea
+                placeholder="Vazifa haqida batafsil ma'lumot kiriting ..."
+                value={homeworkForm.description || ''}
+                onChange={(e) => setHomeworkForm({ ...homeworkForm, description: e.target.value })}
+                rows={6}
+                style={{ width: '100%', border: 'none', padding: '12px 14px', fontSize: '14px', resize: 'vertical', outline: 'none', fontFamily: 'inherit', color: '#374151', boxSizing: 'border-box', display: 'block' }}
+              />
+            </div>
+          </div>
+
+          {/* FAYL YUKLASH */}
+          <div style={{ marginBottom: '28px' }}>
+            <div
+              onClick={() => document.getElementById('hw-file-input-main').click()}
+              onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) setHomeworkForm({ ...homeworkForm, file: f }); }}
+              onDragOver={(e) => e.preventDefault()}
+              style={{ border: '1px solid #d1d5db', borderRadius: '8px', padding: '32px 24px', textAlign: 'center', cursor: 'pointer', background: '#fff' }}
+            >
+              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="16 16 12 12 8 16" />
+                  <line x1="12" y1="12" x2="12" y2="21" />
+                  <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+                </svg>
+              </div>
+              <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>Faylni tanlash yoki shu yerga tashlang</p>
+              <input id="hw-file-input-main" type="file" accept=".pdf,.zip,.rar,.doc,.docx,.ppt,.pptx,.txt,image/*" style={{ display: 'none' }} onChange={(e) => setHomeworkForm({ ...homeworkForm, file: e.target.files?.[0] || null })} />
+            </div>
+            {homeworkForm.file && (
+              <div style={{ marginTop: '8px', padding: '8px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '13px', color: '#374151' }}>{homeworkForm.file.name}</span>
+                <button type="button" onClick={() => setHomeworkForm({ ...homeworkForm, file: null })} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}>
+                  <FiX size={15} />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* TUGMALAR */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+            <button type="button" onClick={resetHomeworkForm} style={{ padding: '10px 28px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', color: '#374151' }}>
+              Bekor qilish
+            </button>
+            <button type="submit" disabled={isHomeworkSubmitting} style={{ padding: '10px 28px', borderRadius: '8px', border: 'none', background: '#10b981', fontSize: '14px', fontWeight: 600, cursor: isHomeworkSubmitting ? 'not-allowed' : 'pointer', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px', opacity: isHomeworkSubmitting ? 0.7 : 1 }}>
+              {isHomeworkSubmitting ? (<><div style={{ width: '15px', height: '15px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />Saqlanmoqda...</>) : "E'lon qilish"}
+            </button>
+          </div>
+        </form>
+      </div>
+    )}
+
+    {!isHomeworkDrawerOpen && (
     <div style={{ padding: '24px', background: '#fff', borderRadius: '12px' }}>
       {/* HEADER */}
       <div style={{
@@ -706,7 +802,7 @@ const GroupDetails = () => {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button
-            onClick={() => navigate('/dashboard/groups')}
+            onClick={() => navigate('/groups')}
             style={{ background: 'none', border: 'none', cursor: 'pointer' }}
           >
             <FiChevronLeft size={24} />
@@ -1200,150 +1296,7 @@ const GroupDetails = () => {
         </div>
       )}
     </div>
-
-    {/* UYGA VAZIFA DRAWER */}
-    <div
-      className={`right-drawer-overlay ${isHomeworkDrawerOpen ? 'open' : ''}`}
-      onClick={resetHomeworkForm}
-    >
-      <div
-        className={`right-drawer ${isHomeworkDrawerOpen ? 'open' : ''}`}
-        onClick={(e) => e.stopPropagation()}
-        style={{ width: '440px', maxWidth: '100%' }}
-      >
-        <div className="drawer-header">
-          <h2 className="drawer-title">
-            {editingHomeworkId ? 'Uyga vazifani tahrirlash' : "Uyga vazifa qo'shish"}
-          </h2>
-          <button type="button" className="drawer-close" onClick={resetHomeworkForm}>
-            <FiX />
-          </button>
-        </div>
-
-        <form
-          onSubmit={handleHomeworkSubmit}
-          style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}
-        >
-          <div className="form-group">
-            <label className="form-label">
-              Mavzu <span style={{ color: 'red' }}>*</span>
-            </label>
-            <input
-              type="text"
-              required
-              placeholder="Html asoslari"
-              className="form-input"
-              value={homeworkForm.title}
-              onChange={(e) => setHomeworkForm({ ...homeworkForm, title: e.target.value })}
-            />
-          </div>
-
-          <div className="form-group">
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={homeworkForm.create_new_lesson}
-                onChange={(e) => setHomeworkForm({
-                  ...homeworkForm,
-                  create_new_lesson: e.target.checked,
-                  lesson_id: e.target.checked ? '' : homeworkForm.lesson_id,
-                })}
-              />
-              <span className="form-label" style={{ margin: 0 }}>Yangi dars yaratish</span>
-            </label>
-          </div>
-
-          {homeworkForm.create_new_lesson ? (
-            <div className="form-group">
-              <label className="form-label">
-                Dars mavzusi <span style={{ color: 'red' }}>*</span>
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="Dars nomi"
-                className="form-input"
-                value={homeworkForm.new_lesson_topic}
-                onChange={(e) => setHomeworkForm({ ...homeworkForm, new_lesson_topic: e.target.value })}
-              />
-            </div>
-          ) : (
-            <div className="form-group">
-              <label className="form-label">
-                Dars <span style={{ color: 'red' }}>*</span>
-              </label>
-              <select
-                required
-                className="form-input"
-                value={homeworkForm.lesson_id}
-                onChange={(e) => setHomeworkForm({ ...homeworkForm, lesson_id: e.target.value })}
-              >
-                <option value="">— Dars tanlang —</option>
-                {groupLessons.map((lesson) => (
-                  <option key={lesson.id} value={lesson.id}>
-                    {lesson.topic || lesson.title || `Dars #${lesson.id}`}
-                  </option>
-                ))}
-              </select>
-              {groupLessons.length === 0 && (
-                <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '6px' }}>
-                  Darslar yo'q — «Yangi dars yaratish» ni belgilang
-                </p>
-              )}
-            </div>
-          )}
-
-          <div className="form-group">
-            <label className="form-label">
-              Fayl {editingHomeworkId ? '(ixtiyoriy)' : ''}
-            </label>
-            <input
-              type="file"
-              className="form-input"
-              onChange={(e) => setHomeworkForm({
-                ...homeworkForm,
-                file: e.target.files?.[0] || null,
-              })}
-            />
-            {homeworkForm.file && (
-              <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
-                {homeworkForm.file.name}
-              </p>
-            )}
-          </div>
-
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            marginTop: 'auto',
-            paddingTop: '20px',
-            borderTop: '1px solid #f3f4f6',
-          }}>
-            <button type="button" onClick={resetHomeworkForm} className="btn-secondary" style={{ width: '48%' }}>
-              Bekor qilish
-            </button>
-            <button
-              type="submit"
-              disabled={isHomeworkSubmitting}
-              className="btn-primary"
-              style={{ width: '48%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-            >
-              {isHomeworkSubmitting ? (
-                <>
-                  <div style={{
-                    width: '16px', height: '16px',
-                    border: '2px solid rgba(255,255,255,0.3)',
-                    borderTopColor: 'white', borderRadius: '50%',
-                    animation: 'spin 1s linear infinite',
-                  }} />
-                  Saqlanmoqda...
-                </>
-              ) : 'Saqlash'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    )}
 
     {/* VIDEO PLAYER MODAL */}
     {(playingVideo || videoPlayerLoading) && (
@@ -1390,132 +1343,157 @@ const GroupDetails = () => {
     )}
 
     {/* VIDEO QO'SHISH DRAWER */}
-    <div
-      className={`right-drawer-overlay ${isVideoDrawerOpen ? 'open' : ''}`}
-      onClick={resetVideoForm}
-    >
+    {/* VIDEO QO'SHISH MODAL */}
+    {isVideoDrawerOpen && (
       <div
-        className={`right-drawer ${isVideoDrawerOpen ? 'open' : ''}`}
-        onClick={(e) => e.stopPropagation()}
-        style={{ width: '440px', maxWidth: '100%' }}
+        onClick={resetVideoForm}
+        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}
       >
-        <div className="drawer-header">
-          <h2 className="drawer-title">Video qo'shish</h2>
-          <button type="button" className="drawer-close" onClick={resetVideoForm}>
-            <FiX />
-          </button>
-        </div>
-
-        <form
-          onSubmit={handleVideoUpload}
-          style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{ background: '#fff', borderRadius: '12px', width: '100%', maxWidth: '620px', boxShadow: '0 8px 40px rgba(0,0,0,0.18)', overflow: 'hidden' }}
         >
-          <div className="form-group">
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={videoForm.create_new_lesson}
-                onChange={(e) => setVideoForm({
-                  ...videoForm,
-                  create_new_lesson: e.target.checked,
-                  lesson_id: e.target.checked ? '' : videoForm.lesson_id,
-                })}
-              />
-              <span className="form-label" style={{ margin: 0 }}>Yangi dars yaratish</span>
-            </label>
-          </div>
-
-          {videoForm.create_new_lesson ? (
-            <div className="form-group">
-              <label className="form-label">
-                Dars mavzusi <span style={{ color: 'red' }}>*</span>
-              </label>
-              <input
-                type="text"
-                placeholder="Nodejs"
-                className="form-input"
-                value={videoForm.new_lesson_topic}
-                onChange={(e) => setVideoForm({ ...videoForm, new_lesson_topic: e.target.value })}
-              />
-            </div>
-          ) : (
-            <div className="form-group">
-              <label className="form-label">
-                Dars <span style={{ color: 'red' }}>*</span>
-              </label>
-              <select
-                className="form-input"
-                value={videoForm.lesson_id}
-                onChange={(e) => setVideoForm({ ...videoForm, lesson_id: e.target.value })}
-              >
-                <option value="">— Dars tanlang —</option>
-                {groupLessons.map((lesson) => (
-                  <option key={lesson.id} value={lesson.id}>
-                    {lesson.topic || lesson.title || `Dars #${lesson.id}`}
-                  </option>
-                ))}
-              </select>
-              {groupLessons.length === 0 && (
-                <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '6px' }}>
-                  Darslar yo&apos;q — «Yangi dars yaratish» ni belgilang
-                </p>
-              )}
-            </div>
-          )}
-
-          <div className="form-group">
-            <label className="form-label">
-              Video fayl <span style={{ color: 'red' }}>*</span>
-            </label>
-            <input
-              type="file"
-              required
-              accept="video/*,.mp4,.mov,.avi,.mkv,.webm"
-              className="form-input"
-              onChange={(e) => setVideoForm({
-                ...videoForm,
-                file: e.target.files?.[0] || null,
-              })}
-            />
-            {videoForm.file && (
-              <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
-                {videoForm.file.name} ({formatFileSize(videoForm.file.size)})
-              </p>
-            )}
-          </div>
-
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            marginTop: 'auto',
-            paddingTop: '20px',
-            borderTop: '1px solid #f3f4f6',
-          }}>
-            <button type="button" onClick={resetVideoForm} className="btn-secondary" style={{ width: '48%' }}>
-              Bekor qilish
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 24px', borderBottom: '1px solid #f3f4f6' }}>
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Qo&apos;shish</h3>
+            <button type="button" onClick={resetVideoForm} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}>
+              <FiX size={20} />
             </button>
-            <button
-              type="submit"
-              disabled={isVideoSubmitting}
-              className="btn-primary"
-              style={{ width: '48%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+          </div>
+
+          <div style={{ padding: '20px 24px' }}>
+            {/* Drag & Drop zona */}
+            <div
+              onClick={() => document.getElementById('video-multi-input').click()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const files = Array.from(e.dataTransfer.files);
+                const videoFiles = files.filter(f => f.type.startsWith('video/') || /\.(mp4|webm|mpeg|avi|mkv|m4v|ogm|mov)$/i.test(f.name));
+                if (videoFiles.length > 0) {
+                  setVideoForm(prev => ({
+                    ...prev,
+                    files: [...(prev.files || []), ...videoFiles.map(f => ({ file: f, lesson_id: '', name: f.name }))],
+                  }));
+                }
+              }}
+              onDragOver={(e) => e.preventDefault()}
+              style={{ border: '1.5px dashed #d1d5db', borderRadius: '10px', padding: '32px 20px', textAlign: 'center', cursor: 'pointer', background: '#fafafa', marginBottom: '16px' }}
             >
-              {isVideoSubmitting ? (
-                <>
-                  <div style={{
-                    width: '16px', height: '16px',
-                    border: '2px solid rgba(255,255,255,0.3)',
-                    borderTopColor: 'white', borderRadius: '50%',
-                    animation: 'spin 1s linear infinite',
-                  }} />
-                  Yuklanmoqda...
-                </>
-              ) : 'Saqlash'}
-            </button>
+              <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="3" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" />
+                </svg>
+              </div>
+              <p style={{ margin: '0 0 4px', fontWeight: 600, color: '#111827', fontSize: '14px' }}>
+                Videofaylni yuklash uchun ushbu hudud ustiga bosing yoki faylni shu yerga olib keling
+              </p>
+              <p style={{ margin: 0, fontSize: '12px', color: '#9ca3af' }}>
+                Videofayl: .mp4, .webm, .mpeg, .avi, .mkv, .m4v, .ogm, .mov formatlaridan birida bo&apos;lishi kerak
+              </p>
+              <input
+                id="video-multi-input"
+                type="file"
+                accept="video/*,.mp4,.mov,.avi,.mkv,.webm,.mpeg,.m4v,.ogm"
+                multiple
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const files = Array.from(e.target.files);
+                  setVideoForm(prev => ({
+                    ...prev,
+                    files: [...(prev.files || []), ...files.map(f => ({ file: f, lesson_id: '', name: f.name }))],
+                  }));
+                  e.target.value = '';
+                }}
+              />
+            </div>
+
+            {/* Jadval — tanlangan fayllar */}
+            {(videoForm.files || []).length > 0 && (
+              <div style={{ overflowX: 'auto', marginBottom: '16px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                      <th style={{ padding: '8px 10px', textAlign: 'left', color: '#374151', fontWeight: 600 }}>File name</th>
+                      <th style={{ padding: '8px 10px', textAlign: 'left', color: '#374151', fontWeight: 600 }}>* Dars</th>
+                      <th style={{ padding: '8px 10px', textAlign: 'left', color: '#374151', fontWeight: 600 }}>* Video nomi</th>
+                      <th style={{ padding: '8px 10px', textAlign: 'center', color: '#374151', fontWeight: 600 }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(videoForm.files || []).map((item, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                        <td style={{ padding: '8px 10px', color: '#6b7280', maxWidth: '130px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {item.file.name}
+                        </td>
+                        <td style={{ padding: '8px 10px' }}>
+                          <select
+                            value={item.lesson_id}
+                            onChange={(e) => {
+                              const updated = [...(videoForm.files || [])];
+                              updated[idx] = { ...updated[idx], lesson_id: e.target.value };
+                              setVideoForm(prev => ({ ...prev, files: updated }));
+                            }}
+                            style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '5px 8px', fontSize: '12px', background: '#fff', cursor: 'pointer', minWidth: '120px' }}
+                          >
+                            <option value="">Darsni tanlang</option>
+                            {groupLessons.map((lesson) => (
+                              <option key={lesson.id} value={lesson.id}>
+                                {lesson.topic || lesson.title || `Dars #${lesson.id}`}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td style={{ padding: '8px 10px' }}>
+                          <input
+                            type="text"
+                            value={item.name}
+                            onChange={(e) => {
+                              const updated = [...(videoForm.files || [])];
+                              updated[idx] = { ...updated[idx], name: e.target.value };
+                              setVideoForm(prev => ({ ...prev, files: updated }));
+                            }}
+                            style={{ border: '1px solid #d1d5db', borderRadius: '6px', padding: '5px 8px', fontSize: '12px', width: '100%', boxSizing: 'border-box' }}
+                          />
+                        </td>
+                        <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = (videoForm.files || []).filter((_, i) => i !== idx);
+                              setVideoForm(prev => ({ ...prev, files: updated }));
+                            }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}
+                          >
+                            <FiTrash2 size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Tugmalar */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button type="button" onClick={resetVideoForm} style={{ padding: '9px 24px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', color: '#374151' }}>
+                Bekor qilish
+              </button>
+              <button
+                type="button"
+                disabled={isVideoSubmitting || !(videoForm.files || []).length}
+                onClick={handleVideoUpload}
+                style={{ padding: '9px 24px', borderRadius: '8px', border: 'none', background: isVideoSubmitting || !(videoForm.files || []).length ? '#d1d5db' : '#10b981', fontSize: '14px', fontWeight: 600, cursor: isVideoSubmitting || !(videoForm.files || []).length ? 'not-allowed' : 'pointer', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                {isVideoSubmitting ? (
+                  <><div style={{ width: '15px', height: '15px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />Yuklanmoqda...</>
+                ) : 'Fayllarni yuklash'}
+              </button>
+            </div>
           </div>
-        </form>
+        </div>
       </div>
-    </div>
+    )}
     </>
   );
 };

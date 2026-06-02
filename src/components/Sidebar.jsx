@@ -7,10 +7,10 @@ const Sidebar = ({ isOpen }) => {
 
   const navLinks = [
     { name: 'Asosiy', path: '/dashboard', icon: <FaHome size={18} />, end: true },
-    { name: "O'qituvchilar", path: '/dashboard/teachers', icon: <FaUserGraduate size={18} /> },
-    { name: 'Guruhlar', path: '/dashboard/groups', icon: <FaUsers size={18} /> },
-    { name: 'Talabalar', path: '/dashboard/students', icon: <FaGem size={18} /> },
-    { name: "Sovg'alar", path: '/dashboard/gifts', icon: <FaGift size={18} /> },
+    { name: "O'qituvchilar", path: '/teachers', icon: <FaUserGraduate size={18} /> },
+    { name: 'Guruhlar', path: '/groups', icon: <FaUsers size={18} /> },
+    { name: 'Talabalar', path: '/students', icon: <FaGem size={18} /> },
+    { name: "Sovg'alar", path: '/gifts', icon: <FaGift size={18} /> },
   ];
 
   return (
@@ -78,19 +78,19 @@ const Sidebar = ({ isOpen }) => {
             <h3 className="submenu-title">Menu</h3>
          </div>
          <nav className="submenu-nav">
-            <NavLink to="/dashboard/management?tab=Kurslar" className="submenu-link" onClick={() => setIsManagementOpen(false)}>
+            <NavLink to="/management?tab=Kurslar" className="submenu-link" onClick={() => setIsManagementOpen(false)}>
               <FaBook size={16} /> Kurslar
             </NavLink>
-            <NavLink to="/dashboard/management?tab=Xonalar" className="submenu-link" onClick={() => setIsManagementOpen(false)}>
+            <NavLink to="/management?tab=Xonalar" className="submenu-link" onClick={() => setIsManagementOpen(false)}>
               <FaDoorOpen size={16} /> Xonalar
             </NavLink>
-            <NavLink to="/dashboard/management?tab=Xodimlar" className="submenu-link" onClick={() => setIsManagementOpen(false)}>
+            <NavLink to="/management?tab=Xodimlar" className="submenu-link" onClick={() => setIsManagementOpen(false)}>
               <FaUserTie size={16} /> Hodimlar
             </NavLink>
-            <NavLink to="/dashboard/coin" className="submenu-link" onClick={() => setIsManagementOpen(false)}>
+            <NavLink to="/coin" className="submenu-link" onClick={() => setIsManagementOpen(false)}>
               <FaCoins size={16} /> Coin
             </NavLink>
-            <NavLink to="/dashboard/messages" className="submenu-link" onClick={() => setIsManagementOpen(false)}>
+            <NavLink to="/messages" className="submenu-link" onClick={() => setIsManagementOpen(false)}>
               <FaPaperPlane size={16} /> Xabar Yuborish
             </NavLink>
          </nav>
