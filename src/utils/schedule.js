@@ -58,7 +58,7 @@ export const parseSchedules = (raw) => {
 };
 
 /** Jadval kuni → YYYY-MM-DD */
-export const scheduleDayToIso = (day, year = new Date().getFullYear()) => {
+export const scheduleDayToIso = (day, year = new Date().getFullYear(), fallbackMonthNum = null) => {
   if (!day) return null;
 
   const direct =
@@ -68,12 +68,25 @@ export const scheduleDayToIso = (day, year = new Date().getFullYear()) => {
     if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
   }
 
+  const resolveMonthNum = (value) => {
+    if (value == null || value === '') return null;
+    if (typeof value === 'number' && value >= 1 && value <= 12) return value;
+    const str = String(value).trim();
+    if (MONTH_TO_NUM[str] != null) return MONTH_TO_NUM[str];
+    const titled = str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+    if (MONTH_TO_NUM[titled] != null) return MONTH_TO_NUM[titled];
+    const num = Number(str);
+    return num >= 1 && num <= 12 ? num : null;
+  };
+
   const monthNum =
-    day.month_num ??
-    day.monthNum ??
-    MONTH_TO_NUM[day.month] ??
-    MONTH_TO_NUM[day.month_name];
-  const dayNum = day.day ?? day.date_day;
+    resolveMonthNum(day.month_num) ??
+    resolveMonthNum(day.monthNum) ??
+    resolveMonthNum(day.month) ??
+    resolveMonthNum(day.month_name) ??
+    resolveMonthNum(fallbackMonthNum);
+
+  const dayNum = day.day ?? day.date_day ?? day.dayNum ?? day.day_num ?? day.day_number;
 
   if (monthNum && dayNum != null) {
     return `${year}-${String(monthNum).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
@@ -86,7 +99,7 @@ export const flattenScheduleDays = (schedules, year = new Date().getFullYear()) 
   const items = [];
   for (const month of schedules) {
     for (const d of month.days || []) {
-      const iso = scheduleDayToIso(d, year);
+      const iso = scheduleDayToIso(d, year, month.monthNum);
       if (!iso) continue;
       items.push({
         iso,

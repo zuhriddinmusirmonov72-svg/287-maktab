@@ -11,43 +11,99 @@ const apiProxy = {
   proxyTimeout: 600000,
 }
 
-const uploadProxy = {
-  target: API_TARGET,
-  changeOrigin: true,
-  secure: true,
-  timeout: 0,
-  proxyTimeout: 0,
-  configure: (proxy) => {
-    // http-proxy buffer limitini o'chirish
-    proxy.on('proxyReq', (proxyReq, req) => {
-      // Transfer-Encoding: chunked — buffer qilmasdan stream sifatida yuborish
-      proxyReq.removeHeader('content-length')
-      proxyReq.setHeader('transfer-encoding', 'chunked')
-    })
-    proxy.on('error', (err, _req, res) => {
-      console.error('[upload proxy]', err.code, err.message)
-      if (res && !res.headersSent) {
-        res.writeHead(502, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ message: err.message }))
-      }
-    })
-  },
-}
-
 export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
     strictPort: false,
     proxy: {
-      '/api/v1/files/group': uploadProxy,
+      // Homework upload proxy — katta fayllar uchun alohida sozlamalar
+      '/api/v1/students/homeworkAnswer': {
+        target: API_TARGET,
+        changeOrigin: true,
+        secure: true,
+        timeout: 0,
+        proxyTimeout: 0,
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
+            // Content-Length ni o'zgartirishsiz yuborish
+            const cl = req.headers['content-length']
+            if (cl) {
+              proxyReq.setHeader('content-length', cl)
+            }
+            // Transfer-Encoding chunked ni olib tashlash
+            proxyReq.removeHeader('transfer-encoding')
+          })
+
+          // Katta javob uchun
+          proxy.on('proxyRes', (proxyRes) => {
+            proxyRes.headers['access-control-allow-origin'] = '*'
+          })
+
+          proxy.on('error', (err, _req, res) => {
+            console.error('[homework upload proxy error]', err.code, err.message)
+            if (res && !res.headersSent) {
+              res.writeHead(502, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify({ message: `Proxy xato: ${err.message}` }))
+            }
+          })
+        },
+      },
+
+      // Upload proxy — alohida, buffer va timeout sozlamalari bilan
+      '/api/v1/files/group': {
+        target: API_TARGET,
+        changeOrigin: true,
+        secure: true,
+        timeout: 0,
+        proxyTimeout: 0,
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
+            // Content-Length ni o'zgartirishsiz yuborish
+            const cl = req.headers['content-length']
+            if (cl) {
+              proxyReq.setHeader('content-length', cl)
+            }
+            // Transfer-Encoding chunked ni olib tashlash
+            proxyReq.removeHeader('transfer-encoding')
+          })
+
+          // Katta javob uchun
+          proxy.on('proxyRes', (proxyRes) => {
+            proxyRes.headers['access-control-allow-origin'] = '*'
+          })
+
+          proxy.on('error', (err, _req, res) => {
+            console.error('[upload proxy error]', err.code, err.message)
+            if (res && !res.headersSent) {
+              res.writeHead(502, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify({ message: `Proxy xato: ${err.message}` }))
+            }
+          })
+        },
+      },
+
+      // Oddiy API proxy
       '/api/v1': apiProxy,
       '/uploads': { ...apiProxy },
     },
   },
   preview: {
     proxy: {
-      '/api/v1/files/group': uploadProxy,
+      '/api/v1/students/homeworkAnswer': {
+        target: API_TARGET,
+        changeOrigin: true,
+        secure: true,
+        timeout: 0,
+        proxyTimeout: 0,
+      },
+      '/api/v1/files/group': {
+        target: API_TARGET,
+        changeOrigin: true,
+        secure: true,
+        timeout: 0,
+        proxyTimeout: 0,
+      },
       '/api/v1': apiProxy,
       '/uploads': { ...apiProxy },
     },

@@ -23,16 +23,17 @@ const LoginPage = ({ onLogin }) => {
       <div className="login-right">
         <div className="login-form-box">
           <p className="login-tuit-title">
-            MUHAMMAD AL-XORAZMIY NOMIDAGI <br /> TOSHKENT AXBOROT TEXNOLOGIYALARI <br /> UNIVERSITETI
+            NAJOT EDU — TA'LIM MARKAZI
           </p>
           <div className="login-logo">
             <img
-              src="https://lms.tuit.uz/assets/images/logo-md.png"
-              alt="Logo"
+              src="https://najotedu.uz/images/logo.png"
+              alt="NajotEdu Logo"
               style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+              onError={(e) => { e.target.style.display = 'none'; }}
             />
           </div>
-          <h2 className="login-main-title">LEARNING MANAGEMENT SYSTEM</h2>
+          <h2 className="login-main-title">O'QUV BOSHQARUV TIZIMI</h2>
 
           <form onSubmit={handleSubmit}>
             <div className="form-group">
@@ -62,7 +63,7 @@ const LoginPage = ({ onLogin }) => {
             <button type="submit" className="login-submit-btn btn-primary">Kirish</button>
           </form>
         </div>
-        <p className="login-copyright">Copyright © 2021 of Tashkent University of Information Technologies</p>
+        <p className="login-copyright">Copyright © 2025 NajotEdu Ta'lim Markazi. Barcha huquqlar himoyalangan.</p>
       </div>
     </div>
   );

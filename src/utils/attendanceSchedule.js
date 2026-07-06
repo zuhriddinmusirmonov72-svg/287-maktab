@@ -93,3 +93,46 @@ export const getActiveAttendanceRow = (sortedDays, completedSet) => {
     allRowsComplete: chunks.every((c) => c.every((d) => completedSet.has(d.iso))),
   };
 };
+
+/**
+ * Berilgan sana uchun davomat qilish mumkinligini tekshiradi
+ * - Bugun: agar tugallanmagan bo'lsa, qilish mumkin
+ * - Ertaga va undan keyingi kunlar: faqat o'sha sana kelganda kira oladi
+ * - O'tgan kunlar: agar tugallangan bo'lsa, faqat ko'rish mumkin
+ */
+export const canTakeAttendance = (isoDate, completedSet) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const targetDate = new Date(isoDate);
+  targetDate.setHours(0, 0, 0, 0);
+  
+  const isCompleted = completedSet.has(isoDate);
+  const isToday = targetDate.getTime() === today.getTime();
+  const isFuture = targetDate.getTime() > today.getTime();
+  const isPast = targetDate.getTime() < today.getTime();
+  
+  // Bugun uchun
+  if (isToday) {
+    if (isCompleted) {
+      return { canTake: false, reason: "already_done_today" };
+    }
+    return { canTake: true, reason: "today_available" };
+  }
+  
+  // Kelajakdagi kunlar - faqat o'sha sana kelganda kira oladi
+  if (isFuture) {
+    return { canTake: false, reason: "not_yet" };
+  }
+  
+  // O'tgan kunlar uchun faqat ko'rish mumkin
+  if (isPast) {
+    if (isCompleted) {
+      return { canTake: false, reason: "view_only" };
+    }
+    // O'tgan tugallanmagan kunlar uchun ham qilish mumkin emas
+    return { canTake: false, reason: "past_not_available" };
+  }
+  
+  return { canTake: false, reason: "unknown" };
+};
