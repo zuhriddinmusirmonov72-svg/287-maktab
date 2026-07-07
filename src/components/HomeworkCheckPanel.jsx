@@ -270,7 +270,16 @@ const HomeworkCheckPanel = ({ groupId, homework, student, onClose, onUpdate }) =
         null;
     }
     
-    // 5. Oxirgi variant - submissionData.id yoki student.id (lekin bu student_id bilan aralashmasligi kerak)
+    // 5. Nested student object ichida ID bor (submission ma'lumoti)
+    if (!homeworkAnswerId && student?.student?.id && student?.student?.created_at) {
+      console.log('🔍 Checking nested student.student.id:', student.student.id);
+      console.log('🔍 student.student.created_at:', student.student.created_at);
+      // Agar nested student da created_at bor bo'lsa, bu submission ma'lumoti
+      homeworkAnswerId = student.student.id;
+      console.log('✅ Using student.student.id as homework_answer_id:', homeworkAnswerId);
+    }
+    
+    // 6. Oxirgi variant - submissionData.id yoki student.id (lekin bu student_id bilan aralashmasligi kerak)
     if (!homeworkAnswerId && submissionData?.id) {
       console.log('🔍 Checking submissionData.id:', submissionData.id, 'vs actualStudentId:', actualStudentId);
       // submissionData.id ni faqat u student_id dan farq qilsa ishlatamiz

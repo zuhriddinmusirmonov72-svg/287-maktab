@@ -17,6 +17,66 @@ export default defineConfig({
     port: 5173,
     strictPort: false,
     proxy: {
+      // Teachers API - multipart/form-data (photo upload)
+      '/api/v1/teachers': {
+        target: API_TARGET,
+        changeOrigin: true,
+        secure: true,
+        timeout: 0,
+        proxyTimeout: 0,
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
+            const cl = req.headers['content-length']
+            if (cl) {
+              proxyReq.setHeader('content-length', cl)
+            }
+            proxyReq.removeHeader('transfer-encoding')
+          })
+
+          proxy.on('proxyRes', (proxyRes) => {
+            proxyRes.headers['access-control-allow-origin'] = '*'
+          })
+
+          proxy.on('error', (err, _req, res) => {
+            console.error('[teachers API proxy error]', err.code, err.message)
+            if (res && !res.headersSent) {
+              res.writeHead(502, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify({ message: `Proxy xato: ${err.message}` }))
+            }
+          })
+        },
+      },
+
+      // Students API - multipart/form-data (photo upload)
+      '/api/v1/students': {
+        target: API_TARGET,
+        changeOrigin: true,
+        secure: true,
+        timeout: 0,
+        proxyTimeout: 0,
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
+            const cl = req.headers['content-length']
+            if (cl) {
+              proxyReq.setHeader('content-length', cl)
+            }
+            proxyReq.removeHeader('transfer-encoding')
+          })
+
+          proxy.on('proxyRes', (proxyRes) => {
+            proxyRes.headers['access-control-allow-origin'] = '*'
+          })
+
+          proxy.on('error', (err, _req, res) => {
+            console.error('[students API proxy error]', err.code, err.message)
+            if (res && !res.headersSent) {
+              res.writeHead(502, { 'Content-Type': 'application/json' })
+              res.end(JSON.stringify({ message: `Proxy xato: ${err.message}` }))
+            }
+          })
+        },
+      },
+
       // Homework upload proxy — katta fayllar uchun alohida sozlamalar
       '/api/v1/students/homeworkAnswer': {
         target: API_TARGET,
@@ -90,6 +150,20 @@ export default defineConfig({
   },
   preview: {
     proxy: {
+      '/api/v1/teachers': {
+        target: API_TARGET,
+        changeOrigin: true,
+        secure: true,
+        timeout: 0,
+        proxyTimeout: 0,
+      },
+      '/api/v1/students': {
+        target: API_TARGET,
+        changeOrigin: true,
+        secure: true,
+        timeout: 0,
+        proxyTimeout: 0,
+      },
       '/api/v1/students/homeworkAnswer': {
         target: API_TARGET,
         changeOrigin: true,

@@ -1348,11 +1348,43 @@ export const loadVideoForPlayback = async (file, groupId) => {
   }
 
   console.error("[Video] ❌ Barcha urinishlar muvaffaqiyatsiz:", failures);
+  console.error("[Video] ❌ SINAB KO'RILGAN BARCHA URL LAR:");
+  candidates.forEach((url, index) => {
+    console.error(`   ${index + 1}. ${url}`);
+  });
+  
+  // Aniq xato xabarini shakllantirish
   const last = failures[failures.length - 1];
-  const statusPart = last?.status ? `HTTP ${last.status}` : last?.reason || "noma'lum";
-  throw new Error(
-    `Video yuklab bo'lmadi (${statusPart}). Network tabda so'rovni tekshiring.`
-  );
+  const statusPart = last?.status ? `${last.status}` : last?.reason || "noma'lum";
+  
+  // 404 uchun aniq xabar
+  if (last?.status === 404) {
+    console.error('[Video] ❌❌❌ 404 XATO - VIDEO FAYL TOPILMADI ❌❌❌');
+    console.error('[Video] Fayl obyekti:', JSON.stringify(file, null, 2));
+    console.error('[Video] Group ID:', groupId);
+    console.error('[Video] BACKEND ga quyidagilarni tekshiring:');
+    console.error('   1. Video fayllar serverda mavjudmi: /var/www/app/uploads/videos/ yoki /files/files/');
+    console.error('   2. Video fayl nomini tekshiring (getFileMediaPath natijasi):', getFileMediaPath(file));
+    console.error('   3. Nginx konfiguratsiyasi to\'g\'rimi (static files serving)');
+    console.error('   4. Fayl ruxsatlari: 755 (papkalar), 644 (fayllar)');
+    console.error('   5. Backend logs ni tekshiring: pm2 logs backend yoki journalctl -u backend');
+    throw {
+      status: 404,
+      data: last,
+      message: `Video topilmadi (404)`,
+      details: 'Video fayl serverda topilmadi. Backend admin ga murojaat qiling.',
+      triedUrls: candidates,
+      file: file
+    };
+  }
+  
+  throw {
+    status: last?.status,
+    data: last,
+    message: `Video yuklab bo'lmadi (${statusPart})`,
+    triedUrls: candidates,
+    details: "Network tabda so'rovni tekshiring."
+  };
 };
 
 export default api;

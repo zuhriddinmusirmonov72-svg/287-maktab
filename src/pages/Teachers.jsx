@@ -124,18 +124,42 @@ const Teachers = () => {
 
     setIsSubmitting(true);
     try {
+      console.log('📤 Teachers API chaqirilmoqda:', {
+        method: editingId ? 'PATCH' : 'POST',
+        endpoint: editingId ? `/teachers/${editingId}` : '/teachers',
+        formDataKeys: Array.from(formData.keys())
+      });
+      
+      // Log FormData contents
+      console.log('📦 FormData tarkibi:');
+      for (let [key, val] of formData.entries()) {
+        console.log(`  ${key}:`, val instanceof File ? `File: ${val.name} (${val.size} bytes)` : val);
+      }
+      
       if (editingId) {
-        await teachersAPI.update(editingId, formData);
+        const response = await teachersAPI.update(editingId, formData);
+        console.log('✅ Update response:', response?.data);
         toast.success("O'qituvchi muvaffaqiyatli yangilandi!");
       } else {
-        await teachersAPI.create(formData);
+        const response = await teachersAPI.create(formData);
+        console.log('✅ Create response:', response?.data);
         toast.success("O'qituvchi muvaffaqiyatli qo'shildi!");
       }
       resetForm();
       fetchTeachers();
     } catch (err) {
+      console.error('=== TEACHERS API XATO ===');
+      console.error('❌ Error:', err);
+      console.error('❌ Status:', err.response?.status);
+      console.error('❌ Response data:', err.response?.data);
+      console.error('❌ Request URL:', err.config?.url);
+      console.error('❌ Request method:', err.config?.method);
+      
       const errData = err.response?.data;
-      if (errData?.message && Array.isArray(errData.message)) {
+      
+      if (err.response?.status === 500) {
+        toast.error('Server xatosi yuz berdi. Backend loglarini tekshiring.', { duration: 8000 });
+      } else if (errData?.message && Array.isArray(errData.message)) {
         errData.message.forEach((m) => toast.error(m, { duration: 6000 }));
       } else if (errData?.message && typeof errData.message === 'string') {
         toast.error(errData.message, { duration: 6000 });

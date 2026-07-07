@@ -661,8 +661,34 @@ const TeacherGroupDetails = () => {
       const playback = await loadVideoForPlayback(file, id);
       setPlayingVideo(playback);
     } catch (err) {
-      console.error('❌ Video yuklash xato:', err);
-      toast.error(err.message || 'Videoni ochib bo\'lmadi!');
+      console.error('=== VIDEO YUKLASH XATO ===');
+      console.error('❌ Error:', err);
+      console.error('❌ Status:', err.status);
+      console.error('❌ Data:', err.data);
+      console.error('❌ Message:', err.message);
+      console.error('❌ Details:', err.details);
+      console.error('❌ Fayl obyekti:', file);
+      console.error('❌ Guruh ID:', id);
+      
+      if (err.triedUrls && err.triedUrls.length > 0) {
+        console.error('❌ SINAB KO\'RILGAN URL LAR:');
+        err.triedUrls.forEach((url, index) => {
+          console.error(`   ${index + 1}. ${url}`);
+        });
+      }
+      
+      if (err.status === 404) {
+        console.error('');
+        console.error('🔧 404 XATO - BACKEND ADMIN GA MUROJAAT QILING:');
+        console.error('   • Video fayllar serverda mavjudmi?');
+        console.error('   • To\'g\'ri URL formatimi?');
+        console.error('   • Nginx konfiguratsiyasi to\'g\'rimi?');
+        console.error('   • Fayl ruxsatlari to\'g\'rimi?');
+        console.error('');
+        toast.error('Video fayl topilmadi! Backend admin ga murojaat qiling.', { duration: 8000 });
+      } else {
+        toast.error(err.message || 'Videoni ochib bo\'lmadi!', { duration: 6000 });
+      }
     } finally {
       setVideoPlayerLoading(false);
     }

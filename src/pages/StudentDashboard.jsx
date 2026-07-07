@@ -103,10 +103,15 @@ export default function StudentDashboard() {
       // getGroupLessonsAll → /groups/{groupId}/lessons/all — status va videoCount qaytaradi
       const res = await lessonsAPI.getGroupLessonsAll(groupId);
       const data = res?.data?.data || res?.data || [];
+      
+      console.log('📚 Darslar API response:', res?.data);
+      console.log('📚 Darslar array:', data);
+      
       setLessons(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error('Darslarni yuklashda xato:', err);
+      console.warn('⚠️ Darslarni yuklashda xato:', err.message);
       setLessons([]);
+      // Don't throw - this is non-critical
     } finally {
       setLoadingLessons(false);
     }
@@ -163,6 +168,10 @@ export default function StudentDashboard() {
       setLoadingHomework(true);
       const res = await lessonsAPI.getLessonHomeworks(groupId, lessonId);
       const data = res?.data?.data || res?.data || null;
+      
+      console.log('📝 Uyga vazifa API response:', res?.data);
+      console.log('📝 Homework data:', data);
+      
       // API array qaytarsa birinchisini ol
       if (Array.isArray(data)) {
         setHomeworkData(data.length > 0 ? data[0] : null);
@@ -170,8 +179,9 @@ export default function StudentDashboard() {
         setHomeworkData(data || null);
       }
     } catch (err) {
-      console.error('Uyga vazifa yuklashda xato:', err);
+      console.warn('⚠️ Uyga vazifa yuklashda xato:', err.message);
       setHomeworkData(null);
+      // Don't throw - this is non-critical
     } finally {
       setLoadingHomework(false);
     }
@@ -183,6 +193,15 @@ export default function StudentDashboard() {
   };
 
   const handleOpenHomeworkModal = (lesson) => {
+    // Clear previous homework data first
+    setHomeworkData(null);
+    setVideos([]);
+    setVideoError(null);
+    setSelectedFile(null);
+    setGithubLink('');
+    setActiveVideoIndex(0);
+    
+    // Set new lesson
     setSelectedLesson(lesson);
     const groupId = selectedGroupForLessons?.id || selectedGroupForLessons?.group_id || selectedGroupForLessons?.groupId;
     const lessonId = lesson?.id;
@@ -276,17 +295,32 @@ export default function StudentDashboard() {
       console.log('✅ Success response:', response?.data);
 
       toast.success('Uyga vazifa muvaffaqiyatli yuborildi! ✅');
-      const groupId = selectedGroupForLessons?.id || selectedGroupForLessons?.group_id;
-      await fetchGroupLessons(groupId);
-      // Refresh homework data
-      await fetchHomeworkData(groupId, selectedLesson.id);
-
+      
       // Clear form
       setSelectedFile(null);
       setGithubLink('');
       
-      // Close modal after successful submission
-      handleCloseHomeworkModal();
+      // Refresh data from backend to show real status
+      try {
+        const groupId = selectedGroupForLessons?.id || selectedGroupForLessons?.group_id;
+        if (groupId) {
+          // Fetch lessons to update status
+          await fetchGroupLessons(groupId).catch(err => {
+            console.warn('⚠️ fetchGroupLessons xato (ignored):', err.message);
+          });
+          // Fetch homework data to show submission
+          if (selectedLesson?.id) {
+            await fetchHomeworkData(groupId, selectedLesson.id).catch(err => {
+              console.warn('⚠️ fetchHomeworkData xato (ignored):', err.message);
+            });
+          }
+        }
+      } catch (refreshErr) {
+        console.warn('⚠️ Refresh xatosi (ignored):', refreshErr.message);
+      }
+      
+      // Don't close modal - show submission from backend
+      // handleCloseHomeworkModal();
     } catch (err) {
       console.error('=== XATO TAFSILOTI ===');
       console.error('❌ Error object:', err);
@@ -331,21 +365,31 @@ export default function StudentDashboard() {
 
   const getHomeworkStatus = (lesson) => {
     const raw = String(lesson?.status || 'Berilmagan').toLowerCase();
+    
+    console.log(`📊 Dars status - ID: ${lesson?.id}, Status: "${lesson?.status}", Raw: "${raw}"`);
 
+    // 1. Qabul qilingan: tekshirilgan va 60+ ball
     if (raw.includes('qabul') || raw.includes('accepted') || raw.includes('approved')) {
       return { text: 'Qabul qilingan', color: '#22c55e', bg: '#22c55e' };
     }
+    
+    // 2. Qaytarilgan: tekshirilgan va 60 dan past
     if (raw.includes('qaytarilgan') || raw.includes('rejected') || raw.includes('returned')) {
       return { text: 'Qaytarilgan', color: '#f59e0b', bg: '#f59e0b' };
     }
-    if (raw.includes('bajarilmagan') || raw.includes('bajarmaganlar')) {
-      return { text: lesson.status || 'Bajarilmagan', color: '#ef4444', bg: '#ef4444' };
-    }
+    
+    // 3. Kutilmoqda: yuklangan lekin hali tekshirilmagan
     if (raw.includes('kutilmoqda') || raw.includes('pending') || raw.includes('waiting') || raw.includes('submitted')) {
       return { text: 'Kutilmoqda', color: '#3b82f6', bg: '#3b82f6' };
     }
-    // Berilmagan
-    return { text: lesson.status || 'Berilmagan', color: '#6b7280', bg: '#6b7280' };
+    
+    // 4. Bajarilmagan: uyga vazifa berilgan lekin yuklanmagan
+    if (raw.includes('bajarilmagan') || raw.includes('bajarmaganlar') || raw.includes('not submitted')) {
+      return { text: 'Bajarilmagan', color: '#ef4444', bg: '#ef4444' };
+    }
+    
+    // 5. Berilmagan: uyga vazifa yo'q
+    return { text: 'Berilmagan', color: '#6b7280', bg: '#6b7280' };
   };
 
   const navItems = [
@@ -944,22 +988,26 @@ export default function StudentDashboard() {
 
                         {/* Submitted State Blocks */}
                         {(() => {
-                          const statusRaw = String(selectedLesson?.status || 'Berilmagan').toLowerCase();
-                          const isSubmittedStatus = statusRaw !== 'berilmagan' && statusRaw !== 'bajarilmagan';
-                          const isSubmitted = studentSubmissions.length > 0 || isSubmittedStatus;
-                          const isRejected = statusRaw.includes('qaytarilgan') || statusRaw.includes('rejected') || statusRaw.includes('bekor');
+                          // ✅ FAQAT backend'dan kelgan ma'lumotga qarab tekshirish
+                          const hasAnswer = homeworkData?.answer || homeworkData?.homework_answer || studentSubmissions.length > 0;
                           
-                          if (!isSubmitted) return null;
+                          if (!hasAnswer) return null;
 
-                          const finalData = studentSubmissions[0] || homeworkData?.homework_answer || homeworkData?.answer || selectedLesson?.homework_answer || selectedLesson?.student_submission || homeworkData || selectedLesson || {};
+                          const finalData = studentSubmissions[0] || homeworkData?.homework_answer || homeworkData?.answer || {};
                           
-                          const githubLink = finalData.github_link || finalData.githubLink || 'Havola kiritilmagan';
+                          // Status tekshirish - faqat finalData dan
+                          const statusRaw = String(finalData?.status || '').toUpperCase();
+                          const isRejected = statusRaw === 'REJECTED' || statusRaw.includes('BEKOR');
+                          const isAccepted = statusRaw === 'ACCEPTED' || statusRaw.includes('QABUL');
+                          const isPending = statusRaw === 'PENDING' || statusRaw.includes('KUTILMOQDA');
+                          
+                          const githubLink = finalData.github_link || finalData.githubLink || finalData.comment || 'Havola kiritilmagan';
                           const netlifyLink = finalData.netlify_link || finalData.vercel_link || finalData.live_link || '';
                           const fileCount = finalData.file || finalData.answer_file || finalData.student_file ? 1 : 0;
                           
-                          const teacherComment = finalData.teacher_comment || selectedLesson?.teacher_comment || homeworkData?.teacher_comment || (isRejected ? 'Vazifada xatoliklar mavjud' : 'Izoh qoldirilmagan');
-                          const checkerName = finalData.checker_name || finalData.teacher_name || selectedLesson?.teacher_name || homeworkData?.teacher_name || 'O\'qituvchi';
-                          const penaltyText = finalData.penalty_text || selectedLesson?.penalty_text || homeworkData?.penalty_text || "Topshiriq mezonlarga javob bermadi yoki kechikib topshirildi.";
+                          const teacherComment = finalData.teacher_comment || (isRejected ? 'Vazifada xatoliklar mavjud' : 'Izoh qoldirilmagan');
+                          const checkerName = finalData.checker_name || finalData.teacher_name || 'O\'qituvchi';
+                          const penaltyText = finalData.penalty_text || "Topshiriq mezonlarga javob bermadi yoki kechikib topshirildi.";
 
                           return (
                             <>
@@ -973,7 +1021,7 @@ export default function StudentDashboard() {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
                                   {githubLink !== 'Havola kiritilmagan' && (
                                     <p style={{ margin: 0, fontSize: '14px', color: '#374151' }}>
-                                      GitHub -&gt; <a href={githubLink} target="_blank" rel="noopener noreferrer" style={{ color: '#4b5563', textDecoration: 'none' }}>{githubLink}</a>
+                                      Matn/Link -&gt; <span style={{ color: '#4b5563' }}>{githubLink}</span>
                                     </p>
                                   )}
                                   {netlifyLink && (
@@ -986,7 +1034,7 @@ export default function StudentDashboard() {
                                 <div style={{ textAlign: 'right' }}>
                                   <span style={{ fontSize: '14px', color: '#374151' }}>
                                     {(() => {
-                                      const dt = finalData.created_at || finalData.submitted_at || selectedLesson?.created_at || new Date();
+                                      const dt = finalData.created_at || finalData.submitted_at || new Date();
                                       const d = new Date(dt);
                                       if (isNaN(d.getTime())) return '';
                                       const m = ['Yan','Fev','Mar','Apr','May','Iyun','Iyul','Avg','Sen','Okt','Noy','Dek'];
@@ -996,43 +1044,45 @@ export default function StudentDashboard() {
                                 </div>
                               </div>
 
-                              {/* O'qituvchi izohi */}
-                              <div style={{ background: '#f8f4ef', padding: '24px 32px', borderRadius: '12px', marginTop: '16px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                                  <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '400', color: '#374151' }}>O'qituvchi izohi</h4>
-                                  <span style={{ fontSize: '15px', color: isRejected ? '#ef4444' : '#16a34a', fontWeight: '500' }}>
-                                    {isRejected ? 'Vazifa bekor qilindi' : 'Vazifa qabul qilindi'}
-                                  </span>
-                                </div>
-                                
-                                {isRejected && (
-                                  <div style={{ background: '#fef9c3', padding: '16px', borderRadius: '8px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <span style={{ color: '#eab308', fontSize: '16px' }}>⚠️</span>
-                                    <span style={{ color: '#854d0e', fontSize: '14px' }}>{penaltyText}</span>
+                              {/* O'qituvchi izohi - FAQAT ACCEPTED yoki REJECTED bo'lsa */}
+                              {(isAccepted || isRejected) && (
+                                <div style={{ background: '#f8f4ef', padding: '24px 32px', borderRadius: '12px', marginTop: '16px' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                                    <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '400', color: '#374151' }}>O'qituvchi izohi</h4>
+                                    <span style={{ fontSize: '15px', color: isRejected ? '#ef4444' : '#16a34a', fontWeight: '500' }}>
+                                      {isRejected ? 'Vazifa bekor qilindi' : 'Vazifa qabul qilindi'}
+                                    </span>
                                   </div>
-                                )}
+                                  
+                                  {isRejected && (
+                                    <div style={{ background: '#fef9c3', padding: '16px', borderRadius: '8px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                      <span style={{ color: '#eab308', fontSize: '16px' }}>⚠️</span>
+                                      <span style={{ color: '#854d0e', fontSize: '14px' }}>{penaltyText}</span>
+                                    </div>
+                                  )}
 
-                                <div style={{ marginBottom: '32px' }}>
-                                  <p style={{ margin: 0, fontSize: '15px', color: '#4b5563' }}>
-                                    {teacherComment}
-                                  </p>
+                                  <div style={{ marginBottom: '32px' }}>
+                                    <p style={{ margin: 0, fontSize: '15px', color: '#4b5563' }}>
+                                      {teacherComment}
+                                    </p>
+                                  </div>
+                                  
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                                    <span style={{ fontSize: '14px', color: '#4b5563' }}>
+                                      Tekshiruvchi: {checkerName}
+                                    </span>
+                                    <span style={{ fontSize: '14px', color: '#374151' }}>
+                                      {(() => {
+                                        const dt = finalData.checked_at || finalData.updated_at || selectedLesson?.updated_at || new Date(Date.now() - 3600000);
+                                        const d = new Date(dt);
+                                        if (isNaN(d.getTime())) return '';
+                                        const m = ['Yan','Fev','Mar','Apr','May','Iyun','Iyul','Avg','Sen','Okt','Noy','Dek'];
+                                        return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} ${d.getDate()} ${m[d.getMonth()]?.substring(0,3)}, ${d.getFullYear()}`;
+                                      })()}
+                                    </span>
+                                  </div>
                                 </div>
-                                
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                                  <span style={{ fontSize: '14px', color: '#4b5563' }}>
-                                    Tekshiruvchi: {checkerName}
-                                  </span>
-                                  <span style={{ fontSize: '14px', color: '#374151' }}>
-                                    {(() => {
-                                      const dt = finalData.checked_at || finalData.updated_at || selectedLesson?.updated_at || new Date(Date.now() - 3600000);
-                                      const d = new Date(dt);
-                                      if (isNaN(d.getTime())) return '';
-                                      const m = ['Yan','Fev','Mar','Apr','May','Iyun','Iyul','Avg','Sen','Okt','Noy','Dek'];
-                                      return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} ${d.getDate()} ${m[d.getMonth()]?.substring(0,3)}, ${d.getFullYear()}`;
-                                    })()}
-                                  </span>
-                                </div>
-                              </div>
+                              )}
 
                               <div style={{ textAlign: 'center', marginTop: '24px' }}>
                                 <span style={{ fontSize: '15px', color: '#374151' }}>Qayta topshirish imkoniyati berilmagan</span>

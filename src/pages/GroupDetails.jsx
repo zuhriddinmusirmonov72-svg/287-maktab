@@ -661,8 +661,34 @@ const GroupDetails = () => {
       const playback = await loadVideoForPlayback(file, id);
       setPlayingVideo(playback);
     } catch (err) {
-      console.error('❌ Video yuklash xato:', err);
-      toast.error(err.message || 'Videoni ochib bo\'lmadi!');
+      console.error('=== VIDEO YUKLASH XATO ===');
+      console.error('❌ Error:', err);
+      console.error('❌ Status:', err.status);
+      console.error('❌ Data:', err.data);
+      console.error('❌ Message:', err.message);
+      console.error('❌ Details:', err.details);
+      console.error('❌ Fayl obyekti:', file);
+      console.error('❌ Guruh ID:', id);
+      
+      if (err.triedUrls && err.triedUrls.length > 0) {
+        console.error('❌ SINAB KO\'RILGAN URL LAR:');
+        err.triedUrls.forEach((url, index) => {
+          console.error(`   ${index + 1}. ${url}`);
+        });
+      }
+      
+      if (err.status === 404) {
+        console.error('');
+        console.error('🔧 404 XATO - BACKEND ADMIN GA MUROJAAT QILING:');
+        console.error('   • Video fayllar serverda mavjudmi?');
+        console.error('   • To\'g\'ri URL formatimi?');
+        console.error('   • Nginx konfiguratsiyasi to\'g\'rimi?');
+        console.error('   • Fayl ruxsatlari to\'g\'rimi?');
+        console.error('');
+        toast.error('Video fayl topilmadi! Backend admin ga murojaat qiling.', { duration: 8000 });
+      } else {
+        toast.error(err.message || 'Videoni ochib bo\'lmadi!', { duration: 6000 });
+      }
     } finally {
       setVideoPlayerLoading(false);
     }
@@ -1013,8 +1039,23 @@ const GroupDetails = () => {
 
         await fetchAttendance(id);
       } catch (err) {
-        console.error('Guruh ma\'lumotlari xato:', err.response?.data || err.message);
-        toast.error("Guruh ma'lumotlarini yuklashda xato!");
+        console.error('=== GURUH MA\'LUMOTLARI XATO ===');
+        console.error('❌ Error:', err);
+        console.error('❌ Status:', err.response?.status);
+        console.error('❌ Response data:', err.response?.data);
+        console.error('❌ Error message:', err.message);
+        console.error('❌ Request URL:', err.config?.url);
+        
+        const errData = err.response?.data;
+        if (errData?.message) {
+          if (Array.isArray(errData.message)) {
+            errData.message.forEach(m => toast.error(m, { duration: 6000 }));
+          } else {
+            toast.error(errData.message, { duration: 6000 });
+          }
+        } else {
+          toast.error("Guruh ma'lumotlarini yuklashda xato!");
+        }
         setGroup(null);
       } finally {
         setIsLoading(false);
