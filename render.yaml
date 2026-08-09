@@ -6,12 +6,10 @@ services:
     branch: main
     rootDir: backend
     buildCommand: npm install
-    startCommand: node src/app.js
+    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 3001
       - key: JWT_SECRET
         value: 287maktab-super-secret-key-change-in-production-12345
     plan: free
