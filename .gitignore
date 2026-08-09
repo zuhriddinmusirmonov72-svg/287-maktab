@@ -27,8 +27,8 @@ dist-ssr
 .env
 .env.local
 .env.development
-.env.production
-*.env
+# .env.production — production uchun GitHub'da saqlanadi
+# *.env
 
 # Database files (will be created in production)
 backend/data/*.db
