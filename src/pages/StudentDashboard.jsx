@@ -83,13 +83,18 @@ export default function StudentDashboard() {
 
   const fetchMyGroups = async () => {
     try {
+      console.log('🔵 fetchMyGroups boshlandi');
+      console.log('🔵 API base URL:', import.meta.env.VITE_API_URL);
       const res = await studentsAPI.getMyGroups();
       const data = res?.data?.data || res?.data || [];
-      console.log('API response:', res);
-      console.log('Groups data:', data);
-      setGroups(data);
+      console.log('✅ API response:', res);
+      console.log('✅ Groups data:', data);
+      setGroups(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error('Guruhlarni yuklashda xato:', err);
+      console.error('❌ Guruhlarni yuklashda xato:', err);
+      console.error('❌ Error response:', err?.response?.data);
+      console.error('❌ Error status:', err?.response?.status);
+      toast.error('Guruhlarni yuklashda xato: ' + (err?.response?.data?.message || err.message));
       setGroups([]);
     } finally {
       setLoading(false);
