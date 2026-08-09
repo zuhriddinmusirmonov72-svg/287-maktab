@@ -1,54 +1,178 @@
-# EMS - Education Management System
+# 🎓 287-maktab LMS (Learning Management System)
 
-React + Vite asosida qurilgan ta'lim boshqaruv tizimi.
+> O'quv markazlari uchun zamonaviy Learning Management System - O'quvchilar, o'qituvchilar va ma'murlar uchun to'liq funksional platforma
 
-## Yangi funksionallik - Guruh Darsliklarida O'quvchilarni Tanlash
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/Node.js-20.x-green.svg)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-18.x-blue.svg)](https://reactjs.org/)
+[![PWA Ready](https://img.shields.io/badge/PWA-Ready-purple.svg)](https://web.dev/progressive-web-apps/)
 
-### API Endpoints:
-1. **GET /api/v1/homework/{groupId}** - guruh ID bo'yicha uy vazifalar (masalan: `/homework/59` = 59-guruh)
-2. **GET /api/v1/homework/all** - barcha uy vazifalar (backup uchun)
-3. **GET /api/v1/group/{groupId}/homework/{homeworkId}/result/{studentId}** - o'quvchi natijasi
+## 🌟 Features
 
-### O'zgartirishlar:
+### 👨‍🎓 O'quvchilar uchun
+- ✅ Guruhlar va darslar ro'yxati
+- ✅ Video darslarni ko'rish
+- ✅ Uyga vazifa yuklash (fayl va GitHub link)
+- ✅ Uyga vazifa statuslari (Kutilmoqda, Qabul qilingan, Qaytarilgan)
+- ✅ Kumush tangalar va XP tizimi (gamification)
+- ✅ Bildirishnomalar paneli
+- ✅ Reyting va ko'rsatgichlar
+- ✅ Sozlamalar (parol o'zgartirish)
 
-**GroupLesson sahifasi** (`src/pages/GroupLesson.jsx`):
-- ✅ O'quvchilar ro'yxatiga click event qo'shildi
-- ✅ Homework check modal integratsiyasi
-- ✅ Har bir o'quvchi ustiga bossangiz modal oyna ochiladi
-- ✅ Modal oynada o'quvchi uy vazifasini tekshirish mumkin:
-  - Ball berish (0-100 oralig'ida)
-  - Izoh yozish
-  - Yuborilgan fayllarni ko'rish
-  - GitHub linklarni tekshirish
-  - Status: 60+ ball = ACCEPTED, 0-59 = REJECTED
+### 👨‍🏫 O'qituvchilar uchun
+- ✅ Guruhlarni boshqarish
+- ✅ Darslarni yaratish va tahrirlash
+- ✅ Video dars yuklash
+- ✅ Uyga vazifa berish va tekshirish
+- ✅ O'quvchilar baholash
+- ✅ Davomat boshqarish
+- ✅ Statistika va hisobotlar
 
-**HomeworkCheckPanel komponenti** (`src/components/HomeworkCheckPanel.jsx`):
-- ✅ Uy vazifa tafsilotlarini ko'rsatish
-- ✅ O'quvchi topshiriqlarini baholash
-- ✅ Fayllar va linklar bilan ishlash
-- ✅ Avtomatik status belgilash (ball asosida)
+### 🔐 Super Admin uchun
+- ✅ Foydalanuvchilarni boshqarish
+- ✅ Kurslar va xonalar yaratish
+- ✅ O'qituvchilar va o'quvchilarni qo'shish
+- ✅ Guruhlar tashkil qilish
+- ✅ To'liq tizim nazorati
 
-### Foydalanish:
-1. Guruh Darsliklariga kiring (`/groups/:id/lesson?date=...`)
-2. Biror mavzuni (lesson) tanlang
-3. O'quvchilar jadvalida biror o'quvchini bosing
-4. Modal oynada uy vazifasini tekshiring va ball bering
+### 🚀 Qo'shimcha Features
+- ✅ **PWA (Progressive Web App)** - Telefonga app sifatida o'rnatish
+- ✅ **Mobile Responsive** - 360px-425px ekranlar uchun optimallashtirilgan
+- ✅ **Offline Mode** - Internet yo'q bo'lganda ham asosiy sahifalar ishlaydi
+- ✅ **Push Notifications** - Real-time bildirishnomalar
+- ✅ **SMS OTP** - Parolni tiklash (Telegram bot)
+- ✅ **File Upload** - Video, rasm va hujjatlar yuklash
+
+## 🛠️ Tech Stack
+
+### Frontend
+- **React 18** - UI library
+- **Vite** - Build tool
+- **Material-UI** - Component library
+- **React Router** - Routing
+- **Axios** - HTTP client
+- **React Hot Toast** - Notifications
+
+### Backend
+- **Node.js** - Runtime
+- **Express.js** - Web framework
+- **NeDB** - File-based database
+- **JWT** - Authentication
+- **Bcrypt** - Password hashing
+- **Multer** - File upload
+- **Swagger** - API documentation
+
+## 📦 Installation
+
+### Prerequisites
+- Node.js 18+ 
+- npm or yarn
+- Git
+
+### Clone Repository
+```bash
+git clone https://github.com/zuhriddinmusirmonov72-svg/287-maktab.git
+cd 287-maktab
+```
+
+### Backend Setup
+```bash
+cd backend
+npm install
+node src/app.js
+```
+
+Backend runs on: `http://localhost:3001`
+
+### Frontend Setup
+```bash
+cd ..
+npm install
+npm run dev
+```
+
+Frontend runs on: `http://localhost:5173`
+
+## 🚀 Deployment
+
+### Quick Deploy (Render.com - Free)
+
+1. **Push to GitHub** ✅ (Already done!)
+
+2. **Deploy Backend:**
+   - Go to https://render.com
+   - New → Web Service
+   - Connect GitHub repository
+   - Root Directory: `backend`
+   - Build Command: `npm install`
+   - Start Command: `node src/app.js`
+   - Add Environment Variables:
+     ```
+     NODE_ENV=production
+     PORT=3001
+     JWT_SECRET=your-secret-key
+     ```
+
+3. **Deploy Frontend:**
+   - New → Static Site
+   - Build Command: `npm install && npm run build`
+   - Publish Directory: `dist`
+
+**See full deployment guide:** [DEPLOYMENT_QUICK_START.md](DEPLOYMENT_QUICK_START.md)
+
+## 📱 PWA Setup
+
+1. **Create Icons:**
+   - Use Canva to create 512×512 logo
+   - Generate all sizes: https://realfavicongenerator.net
+   - Place in `public/` folder
+
+2. **Test PWA:**
+   - Chrome DevTools → Application → Manifest
+   - Lighthouse → PWA (Score should be >90)
+   - Install on mobile device
+
+**Full PWA guide:** [PWA_SETUP.md](PWA_SETUP.md)
+
+## 📚 Documentation
+
+- [📖 FINAL_SUMMARY.md](FINAL_SUMMARY.md) - Complete overview
+- [🚀 DEPLOYMENT_QUICK_START.md](DEPLOYMENT_QUICK_START.md) - Deploy guide
+- [📱 PWA_SETUP.md](PWA_SETUP.md) - Progressive Web App setup
+- [🎨 ICON_CREATION_GUIDE.md](ICON_CREATION_GUIDE.md) - Icon creation guide
+- [📱 MODERN_ANDROID_OPTIMIZATION.md](MODERN_ANDROID_OPTIMIZATION.md) - Mobile optimization
+- [📧 SMS_SETUP.md](SMS_SETUP.md) - SMS/Telegram OTP setup
+
+## 🔐 Default Credentials
+
+```
+Super Admin:
+  Phone: 998901234567
+  Password: admin123
+
+Teacher:
+  Phone: 998901234568
+  Password: teacher123
+
+Student:
+  Phone: 998901234569
+  Password: student123
+```
+
+**⚠️ Change these in production!**
+
+## 👤 Author
+
+**Zuhriddin Musirmonov**
+- GitHub: [@zuhriddinmusirmonov72-svg](https://github.com/zuhriddinmusirmonov72-svg)
+- Email: zuhriddinmusirmonov72@gmail.com
+
+## 📞 Support
+
+For support, email zuhriddinmusirmonov72@gmail.com or create an issue.
 
 ---
 
-## React + Vite
+**⭐ Star this repo if you find it useful!**
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+**🚀 Ready to deploy? Check [DEPLOYMENT_QUICK_START.md](DEPLOYMENT_QUICK_START.md)**
