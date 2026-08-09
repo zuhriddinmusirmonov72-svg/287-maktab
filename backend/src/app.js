@@ -48,7 +48,8 @@ const corsOptions = {
       'http://localhost:3000',
       'https://maktab287.netlify.app',
       'https://287-maktab.netlify.app',
-      'https://287-maktab-backend.netlify.app',  // Yangi Netlify URL
+      'https://287-maktab-backend.netlify.app',
+      'https://two87-maktab-backend.netlify.app',  // Frontend Netlify URL
       /\.netlify\.app$/,  // All Netlify apps
       /\.onrender\.com$/  // All Render apps
     ];
