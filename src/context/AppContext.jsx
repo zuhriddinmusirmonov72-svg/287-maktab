@@ -564,7 +564,7 @@ export const translations = {
 export const AppProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem('user');
-    return savedUser ? JSON.parse(savedUser) : { name: 'Abduxoshim Sultonqulov', photo: '' };
+    return savedUser ? JSON.parse(savedUser) : { name: 'Foydalanuvchi', full_name: 'Foydalanuvchi', photo: '' };
   });
 
   const [darkMode, setDarkMode] = useState(() => {

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline - 287-maktab</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+    .container {
+      max-width: 400px;
+    }
+    .icon {
+      font-size: 80px;
+      margin-bottom: 24px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.1); opacity: 0.8; }
+    }
+    h1 {
+      font-size: 32px;
+      margin-bottom: 16px;
+      font-weight: 700;
+    }
+    p {
+      font-size: 16px;
+      margin-bottom: 32px;
+      opacity: 0.9;
+      line-height: 1.5;
+    }
+    button {
+      background: white;
+      color: #7c3aed;
+      border: none;
+      padding: 14px 36px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    }
+    button:active {
+      transform: translateY(0);
+    }
+    .status {
+      margin-top: 24px;
+      font-size: 14px;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📡</div>
+    <h1>Internet yo'q</h1>
+    <p>Internet ulanishini tekshiring va qayta urinib ko'ring. Ba'zi sahifalar cache'da saqlanishi mumkin.</p>
+    <button onclick="window.location.reload()">
+      ⟳ Qayta urinish
+    </button>
+    <div class="status">
+      <p id="status">Ulanishni tekshirish...</p>
+    </div>
+  </div>
+
+  <script>
+    // Online/Offline status tekshirish
+    function updateStatus() {
+      const statusEl = document.getElementById('status');
+      if (navigator.onLine) {
+        statusEl.textContent = '✓ Internet ulandi';
+        statusEl.style.color = '#10b981';
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        statusEl.textContent = '✗ Internet yo\'q';
+        statusEl.style.color = '#ef4444';
+      }
+    }
+
+    // Har 5 sekundda tekshirish
+    setInterval(updateStatus, 5000);
+    updateStatus();
+
+    // Online/Offline eventlarni tinglash
+    window.addEventListener('online', updateStatus);
+    window.addEventListener('offline', updateStatus);
+  </script>
+</body>
+</html>

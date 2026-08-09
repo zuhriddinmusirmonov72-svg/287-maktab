@@ -1,14 +1,14 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-const API_TARGET = 'https://najot-edu.softwareengineer.uz'
+const API_TARGET = 'http://localhost:3001'
 
 const apiProxy = {
   target: API_TARGET,
   changeOrigin: true,
-  secure: true,
-  timeout: 600000,
-  proxyTimeout: 600000,
+  secure: false,
+  timeout: 0,
+  proxyTimeout: 0,
 }
 
 export default defineConfig({
@@ -21,7 +21,7 @@ export default defineConfig({
       '/api/v1/teachers': {
         target: API_TARGET,
         changeOrigin: true,
-        secure: true,
+        secure: false,
         timeout: 0,
         proxyTimeout: 0,
         configure: (proxy) => {
@@ -51,7 +51,7 @@ export default defineConfig({
       '/api/v1/students': {
         target: API_TARGET,
         changeOrigin: true,
-        secure: true,
+        secure: false,
         timeout: 0,
         proxyTimeout: 0,
         configure: (proxy) => {
@@ -81,7 +81,7 @@ export default defineConfig({
       '/api/v1/students/homeworkAnswer': {
         target: API_TARGET,
         changeOrigin: true,
-        secure: true,
+        secure: false,
         timeout: 0,
         proxyTimeout: 0,
         configure: (proxy) => {
@@ -114,7 +114,7 @@ export default defineConfig({
       '/api/v1/files/group': {
         target: API_TARGET,
         changeOrigin: true,
-        secure: true,
+        secure: false,
         timeout: 0,
         proxyTimeout: 0,
         configure: (proxy) => {
@@ -146,6 +146,7 @@ export default defineConfig({
       // Oddiy API proxy
       '/api/v1': apiProxy,
       '/uploads': { ...apiProxy },
+      '/files/videos': { ...apiProxy },
     },
   },
   preview: {
@@ -153,28 +154,28 @@ export default defineConfig({
       '/api/v1/teachers': {
         target: API_TARGET,
         changeOrigin: true,
-        secure: true,
+        secure: false,
         timeout: 0,
         proxyTimeout: 0,
       },
       '/api/v1/students': {
         target: API_TARGET,
         changeOrigin: true,
-        secure: true,
+        secure: false,
         timeout: 0,
         proxyTimeout: 0,
       },
       '/api/v1/students/homeworkAnswer': {
         target: API_TARGET,
         changeOrigin: true,
-        secure: true,
+        secure: false,
         timeout: 0,
         proxyTimeout: 0,
       },
       '/api/v1/files/group': {
         target: API_TARGET,
         changeOrigin: true,
-        secure: true,
+        secure: false,
         timeout: 0,
         proxyTimeout: 0,
       },

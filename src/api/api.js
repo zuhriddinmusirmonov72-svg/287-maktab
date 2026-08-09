@@ -7,7 +7,7 @@ import { localExamAPI } from "./examStore";
 // Prod: to'g'ridan-to'g'ri backend yoki VITE_API_URL
 // =============================================
 export const BACKEND_API_URL =
-  "https://najot-edu.softwareengineer.uz/api/v1";
+  import.meta.env.VITE_API_URL || "http://localhost:3001/api/v1";
 
 const DEV_PROXY_BASE = "/api/v1";
 
@@ -739,6 +739,24 @@ export const homeworkAPI = {
 };
 
 // =============================================
+// 💎 COINS — Kumush tangalar tizimi
+// =============================================
+export const coinsAPI = {
+  getMy: () => api.get("/coins/my"),
+  add: (data) => api.post("/coins/add", data),
+};
+
+// =============================================
+// 🔔 NOTIFICATIONS — Bildirishnomalar
+// =============================================
+export const notificationsAPI = {
+  getMy: () => api.get("/notifications/my"),
+  markAsRead: (id) => api.patch(`/notifications/${id}/read`),
+  markAllAsRead: () => api.patch("/notifications/read-all"),
+  delete: (id) => api.delete(`/notifications/${id}`),
+};
+
+// =============================================
 // 🎓 EXAMS — localStorage (backend hali yo'q)
 // =============================================
 
@@ -765,13 +783,13 @@ export const getFileMediaPath = (file) => {
   if (!file || typeof file !== "object") return null;
   return (
     file.url ||
+    file.video_url ||      // local backend: filename
     file.path ||
     file.filePath ||
     file.file_path ||
     file.fileUrl ||
     file.file_url ||
     file.videoUrl ||
-    file.video_url ||
     file.link ||
     file.src ||
     null
@@ -934,6 +952,8 @@ export const buildVideoUrlCandidates = (file, groupId) => {
     } else if (raw.startsWith("files/")) {
       push(`${FILES_HOST}/${raw}`);
     } else {
+      // Faqat fayl nomi (local backend: "1783342974389.mp4")
+      push(`${FILES_HOST}/files/videos/${raw}`);
       push(`${FILES_HOST}/files/files/${raw}`);
     }
   }

@@ -114,10 +114,10 @@ const Navbar = () => {
         </div>
 
         <Link to="/profile" className="profile-avatar">
-          {user.photo ? (
-            <img src={user.photo} alt={user.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          {user?.photo ? (
+            <img src={user.photo} alt={user?.name || user?.full_name || 'U'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
-            user.name.charAt(0).toUpperCase()
+            ((user?.name || user?.full_name || 'U') + '').charAt(0).toUpperCase()
           )}
         </Link>
       </div>

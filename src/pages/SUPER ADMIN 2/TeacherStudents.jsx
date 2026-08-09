@@ -2,7 +2,7 @@ import { useState, useEffect, useContext } from 'react';
 import { FiSearch, FiFilter, FiTrash2, FiEye, FiX, FiRefreshCw, FiUser, FiEdit2 } from 'react-icons/fi';
 import { FaUserGraduate } from 'react-icons/fa';
 import toast from 'react-hot-toast';
-import { studentsAPI, groupsAPI } from "../../api/api";
+import { studentsAPI, groupsAPI, teachersAPI } from "../../api/api";
 import { AppContext } from '../../context/AppContext';
 import { useConfirm } from '../../components/ConfirmProvider';
 import StudentInfoModal from '../../components/StudentInfoModal';
@@ -39,10 +39,23 @@ const TeacherStudents = () => {
   const fetchStudents = async () => {
     setIsLoading(true);
     try {
-      const res = await studentsAPI.getAll(1, 100);
-      console.log('Students response:', res.data);
-      const data = res.data?.data || res.data || [];
-      setStudents(Array.isArray(data) ? data : []);
+      // O'qituvchi faqat o'z guruhlaridagi talabalarni ko'radi
+      const res = await teachersAPI.getMyGroups();
+      const groupsData = res.data?.data || res.data || [];
+      const groups = Array.isArray(groupsData) ? groupsData : [];
+
+      // Barcha guruhlardan talabalarni yig'amiz (takrorlanmaslar)
+      const studentMap = new Map();
+      groups.forEach(g => {
+        const gStudents = Array.isArray(g.students) ? g.students : [];
+        gStudents.forEach(s => {
+          if (s && s.id) studentMap.set(s.id, { ...s, group_name: g.name });
+        });
+      });
+
+      const allStudents = Array.from(studentMap.values());
+      console.log('Teacher students:', allStudents);
+      setStudents(allStudents);
     } catch (err) {
       console.error('Fetch xato:', err.response?.data || err.message);
       toast.error(t.studentsLoadError);

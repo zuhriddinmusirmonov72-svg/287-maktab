@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { studentsAPI, lessonsAPI, filesAPI, homeworkAPI, loadVideoForPlayback } from '../api/api';
-import { FiHome, FiCreditCard, FiUsers, FiBarChart2, FiAward, FiShoppingBag, FiBookOpen, FiSettings, FiBell, FiX, FiPlay, FiUpload, FiFileText, FiClock, FiCheckCircle, FiAlertCircle, FiUsers as FiUsersIcon, FiChevronUp, FiChevronDown } from 'react-icons/fi';
-import NajotLogo from '../assets/Najot.png';
+import { studentsAPI, lessonsAPI, filesAPI, homeworkAPI, loadVideoForPlayback, coinsAPI, notificationsAPI, api } from '../api/api';
+import { FiUsers, FiBarChart2, FiAward, FiBookOpen, FiSettings, FiBell, FiX, FiPlay, FiUpload, FiFileText, FiClock, FiCheckCircle, FiAlertCircle, FiUsers as FiUsersIcon, FiChevronUp, FiChevronDown, FiMenu } from 'react-icons/fi';
 import TeachersModal from '../components/TeachersModal';
 import {
   Box,
@@ -25,7 +24,8 @@ import {
   CircularProgress,
   Alert,
   Grid,
-  LinearProgress
+  LinearProgress,
+  Badge
 } from '@mui/material';
 import { Close as CloseIcon, UploadFile as UploadFileIcon, Description as DescriptionIcon } from '@mui/icons-material';
 import toast from 'react-hot-toast';
@@ -55,9 +55,30 @@ export default function StudentDashboard() {
   const [isLessonDetailOpen, setIsLessonDetailOpen] = useState(false);
   const [lessonsStatusFilter, setLessonsStatusFilter] = useState('Barchasi');
   const [activeVideoIndex, setActiveVideoIndex] = useState(0);
+  
+  // 💎 Kumush tangalar va bildirishnomalar uchun state'lar
+  const [coins, setCoins] = useState(0);
+  const [xp, setXP] = useState(0);
+  const [level, setLevel] = useState(1);
+  const [levelProgress, setLevelProgress] = useState(0);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  
+  // 📱 Mobile menu state
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     fetchMyGroups();
+    fetchCoins(); // Kumush tangalarni yuklash
+    fetchNotifications(); // Bildirishnomalarni yuklash
+    
+    // Har 30 sekundda yangi bildirishnomalarni tekshirish
+    const intervalId = setInterval(() => {
+      fetchNotifications();
+    }, 30000);
+    
+    return () => clearInterval(intervalId);
   }, []);
 
   const fetchMyGroups = async () => {
@@ -72,6 +93,52 @@ export default function StudentDashboard() {
       setGroups([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 💎 Kumush tangalarni yuklash
+  const fetchCoins = async () => {
+    try {
+      const res = await coinsAPI.getMy();
+      const data = res?.data?.data || {};
+      setCoins(data.coins || 0);
+      setXP(data.xp || 0);
+      setLevel(data.level || 1);
+      setLevelProgress(data.levelProgress || 0);
+    } catch (err) {
+      console.error('Kumush tangalarni yuklashda xato:', err);
+    }
+  };
+
+  // 🔔 Bildirishnomalarni yuklash
+  const fetchNotifications = async () => {
+    try {
+      const res = await notificationsAPI.getMy();
+      const data = res?.data?.data || {};
+      setNotifications(data.notifications || []);
+      setUnreadCount(data.unreadCount || 0);
+    } catch (err) {
+      console.error('Bildirishnomalarni yuklashda xato:', err);
+    }
+  };
+
+  // Bildirishnomani o'qilgan deb belgilash
+  const markNotificationAsRead = async (id) => {
+    try {
+      await notificationsAPI.markAsRead(id);
+      await fetchNotifications(); // Yangilash
+    } catch (err) {
+      console.error('Bildirishnomani o\'qilgan deb belgilashda xato:', err);
+    }
+  };
+
+  // Barcha bildirishnomalarni o'qilgan deb belgilash
+  const markAllNotificationsAsRead = async () => {
+    try {
+      await notificationsAPI.markAllAsRead();
+      await fetchNotifications();
+    } catch (err) {
+      console.error('Barcha bildirishnomalarni o\'qilgan deb belgilashda xato:', err);
     }
   };
 
@@ -136,24 +203,23 @@ export default function StudentDashboard() {
       const res = await lessonsAPI.getLessonVideos(groupId, lessonId);
       const data = res?.data?.data || res?.data || [];
       const list = Array.isArray(data) ? data : [];
-      
-      const formattedVideos = await Promise.all(list.map(async (v) => {
-        try {
-           const playback = await loadVideoForPlayback(v, groupId);
-           return { ...v, formattedUrl: playback.blobUrl, revoke: playback.revoke };
-        } catch(err) {
-           console.error("Video yuklashda xato:", err);
-           // Fallback if loadVideoForPlayback fails
-           let fallbackUrl = v.video_url || v.url || v.path || v.filename || v.file_url || v.link || '';
-           if (fallbackUrl && !fallbackUrl.startsWith('http')) {
-             fallbackUrl = `https://najot-edu.softwareengineer.uz/api/v1/files/files/${fallbackUrl}`;
-           } else if (v.id) {
-             fallbackUrl = `https://najot-edu.softwareengineer.uz/api/v1/files/${groupId}/${v.id}`;
-           }
-           return { ...v, formattedUrl: fallbackUrl };
-        }
-      }));
-      
+
+      // Video URLlarini local backend dan olamiz
+      // /files/videos/{filename} → Vite proxy → http://localhost:3001/files/videos/{filename}
+      const formattedVideos = list.map(v => {
+        const filename = v.filename || v.video_url || v.originalname || '';
+        // Local backend: /files/videos/{filename}
+        const videoUrl = filename
+          ? `/files/videos/${filename}`
+          : v.url || v.path || '';
+
+        return {
+          ...v,
+          formattedUrl: videoUrl,
+          revoke: false,
+        };
+      });
+
       setVideos(formattedVideos);
     } catch (err) {
       console.error('Videolarni yuklashda xato:', err);
@@ -294,33 +360,47 @@ export default function StudentDashboard() {
       
       console.log('✅ Success response:', response?.data);
 
+      // Backend javobidan kumush tangalar ma'lumotini olish
+      const responseData = response?.data?.data || response?.data || {};
+      const coinsEarned = responseData.coinsEarned || 0;
+      
+      if (coinsEarned > 0) {
+        if (coinsEarned >= 200) {
+          toast.success(`🎉 Ajoyib! +${coinsEarned} kumush tanga oldingiz! (1 soat ichida topshirdingiz)`, {
+            duration: 5000,
+            icon: '💎'
+          });
+        } else {
+          toast.success(`+${coinsEarned} kumush tanga oldingiz!`, {
+            duration: 4000,
+            icon: '💎'
+          });
+        }
+      }
+
       toast.success('Uyga vazifa muvaffaqiyatli yuborildi! ✅');
+      
+      // Kumush tangalarni yangilash
+      await fetchCoins();
+      await fetchNotifications();
       
       // Clear form
       setSelectedFile(null);
       setGithubLink('');
-      
-      // Refresh data from backend to show real status
-      try {
-        const groupId = selectedGroupForLessons?.id || selectedGroupForLessons?.group_id;
-        if (groupId) {
-          // Fetch lessons to update status
-          await fetchGroupLessons(groupId).catch(err => {
-            console.warn('⚠️ fetchGroupLessons xato (ignored):', err.message);
-          });
-          // Fetch homework data to show submission
-          if (selectedLesson?.id) {
-            await fetchHomeworkData(groupId, selectedLesson.id).catch(err => {
-              console.warn('⚠️ fetchHomeworkData xato (ignored):', err.message);
-            });
-          }
+
+      // Refresh: backend dan yangilangan ma'lumotlarni olish
+      const groupId = selectedGroupForLessons?.id || selectedGroupForLessons?.group_id;
+      if (groupId) {
+        // 1. Darslar ro'yxatini yangilash — status "Kutilmoqda" bo'lib qoladi
+        fetchGroupLessons(groupId);
+
+        // 2. Uyga vazifa ma'lumotini yangilash — "Mening jo'natmalarim" ko'rinishi uchun
+        if (selectedLesson?.id) {
+          fetchHomeworkData(groupId, selectedLesson.id);
         }
-      } catch (refreshErr) {
-        console.warn('⚠️ Refresh xatosi (ignored):', refreshErr.message);
       }
-      
-      // Don't close modal - show submission from backend
-      // handleCloseHomeworkModal();
+
+      // Modal ochiq qoladi — o'quvchi "Mening jo'natmalarim" ni ko'radi
     } catch (err) {
       console.error('=== XATO TAFSILOTI ===');
       console.error('❌ Error object:', err);
@@ -393,260 +473,478 @@ export default function StudentDashboard() {
   };
 
   const navItems = [
-    { name: "Bosh sahifa", icon: <FiHome size={18} />, active: false },
-    { name: "To'lovlarim", icon: <FiCreditCard size={18} />, active: false },
-    { name: "Guruhlarim", icon: <FiUsers size={18} />, active: true },
-    { name: "Ko'rsatgichlarim", icon: <FiBarChart2 size={18} />, active: false },
-    { name: "Reyting", icon: <FiAward size={18} />, active: false },
-    { name: "Do'kon", icon: <FiShoppingBag size={18} />, active: false },
-    { name: "Qo'shimcha darslar", icon: <FiBookOpen size={18} />, active: false },
-    { name: "Sozlamalar", icon: <FiSettings size={18} />, active: false },
+    { name: "Guruhlarim", icon: <FiUsers size={18} /> },
+    { name: "Ko'rsatgichlarim", icon: <FiBarChart2 size={18} /> },
+    { name: "Reyting", icon: <FiAward size={18} /> },
+    { name: "Qo'shimcha darslar", icon: <FiBookOpen size={18} /> },
+    { name: "Sozlamalar", icon: <FiSettings size={18} /> },
   ];
 
+  // Foydalanuvchi ma'lumotlari
+  const userData = (() => {
+    try { return JSON.parse(localStorage.getItem('user') || '{}'); } catch { return {}; }
+  })();
+  const userName = userData.full_name || userData.name || 'Student';
+  const userInitial = userName.charAt(0).toUpperCase();
+
+  // 📱 Mobile menu toggle
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f3f4f6' }}>
-      <div style={{
-        width: '260px',
-        backgroundColor: '#ffffff',
-        borderRight: '1px solid #e5e7eb',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'fixed',
-        height: '100vh',
-        left: 0,
-        top: 0,
-      }}>
-        <div style={{
-          padding: '24px 20px',
-          borderBottom: '1px solid #e5e7eb',
-          display: 'flex',
+    <div style={{ display:'flex', minHeight:'100vh', backgroundColor:'#e8f0f7' }}>
+
+      {/* 📱 Mobile Menu Button */}
+      <button 
+        className="mobile-menu-btn"
+        onClick={toggleMobileMenu}
+        style={{
+          display: 'none',
+          position: 'fixed',
+          top: '8px',
+          left: '8px',
+          zIndex: 998,
+          width: '40px',
+          height: '40px',
+          borderRadius: '8px',
+          backgroundColor: '#7c3aed',
+          color: 'white',
+          border: 'none',
+          cursor: 'pointer',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '8px',
-        }}>
-          <span style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b', letterSpacing: '1px' }}>NAJOT</span>
-          <img
-            src={NajotLogo}
-            alt="NajotEdu"
-            style={{ width: '40px', height: '40px', objectFit: 'contain' }}
-          />
-          <span style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b', letterSpacing: '1px' }}>TA'LIM</span>
+        }}
+      >
+        <FiMenu size={20} />
+      </button>
+
+      {/* 📱 Mobile Sidebar Overlay */}
+      <div 
+        className={`mobile-sidebar-overlay ${isMobileMenuOpen ? 'active' : ''}`}
+        onClick={closeMobileMenu}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 999,
+          display: isMobileMenuOpen ? 'block' : 'none',
+        }}
+      />
+
+      {/* ═══ CHAP SIDEBAR ═══ */}
+      <div 
+        className={isMobileMenuOpen ? 'mobile-open' : ''}
+        style={{
+        width:'200px', backgroundColor:'#fff', borderRight:'1px solid #e5e7eb',
+        display:'flex', flexDirection:'column', position:'fixed',
+        height:'100vh', left:0, top:0, zIndex:1000,
+      }}>
+        {/* Logo */}
+        <div style={{ padding:'20px 16px', borderBottom:'1px solid #e5e7eb', display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <div style={{ textAlign:'center' }}>
+            <div style={{ 
+              fontSize:'28px', 
+              fontWeight:800, 
+              background:'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              WebkitBackgroundClip:'text',
+              WebkitTextFillColor:'transparent',
+              backgroundClip:'text',
+              letterSpacing:'-0.5px',
+              lineHeight:1.2,
+              fontFamily:'"Inter", "Segoe UI", sans-serif'
+            }}>287-maktab</div>
+          </div>
         </div>
 
-        <nav style={{ flex: 1, padding: '16px 12px' }}>
-          {navItems.map((item) => (
-            <button
-              key={item.name}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                marginBottom: '4px',
-                borderRadius: '8px',
-                border: 'none',
-                backgroundColor: item.active ? '#7c3aed' : 'transparent',
-                color: item.active ? '#ffffff' : '#4b5563',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: item.active ? '600' : '500',
-                transition: 'all 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                if (!item.active) {
-                  e.currentTarget.style.backgroundColor = '#f3f4f6';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!item.active) {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }
-              }}
-            >
-              {item.icon}
-              {item.name}
-            </button>
-          ))}
+        {/* Nav */}
+        <nav style={{ flex:1, padding:'12px 8px', overflowY:'auto' }}>
+          {navItems.map(item => {
+            const isActive = activeNav === item.name;
+            return (
+              <button key={item.name}
+                onClick={() => {
+                  setActiveNav(item.name);
+                  if (item.name === 'Guruhlarim') {
+                    setSelectedGroupForLessons(null);
+                    setSelectedLesson(null);
+                  }
+                  closeMobileMenu(); // Mobile menuni yopish
+                }}
+                style={{
+                  width:'100%', padding:'10px 12px', marginBottom:'2px',
+                  borderRadius:'8px', border:'none',
+                  backgroundColor: isActive ? '#e8f5e9' : 'transparent',
+                  color: isActive ? '#16a34a' : '#4b5563',
+                  display:'flex', alignItems:'center', gap:'10px',
+                  cursor:'pointer', fontSize:'13px',
+                  fontWeight: isActive ? 600 : 400,
+                  transition:'all 0.15s',
+                  textAlign:'left',
+                }}
+              >
+                <span style={{ color: isActive ? '#16a34a' : '#9ca3af' }}>{item.icon}</span>
+                {item.name}
+              </button>
+            );
+          })}
         </nav>
 
-        <div style={{
-          padding: '16px',
-          borderTop: '1px solid #e5e7eb',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-        }}>
+        {/* User */}
+        <div style={{ padding:'12px', borderTop:'1px solid #e5e7eb', display:'flex', alignItems:'center', gap:'8px' }}>
           <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            backgroundColor: '#7c3aed',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#ffffff',
-            fontWeight: '600',
-            fontSize: '16px',
-          }}>
-            S
+            width:'32px', height:'32px', borderRadius:'50%', background:'#7c3aed',
+            display:'flex', alignItems:'center', justifyContent:'center',
+            color:'#fff', fontWeight:700, fontSize:'14px', flexShrink:0
+          }}>{userInitial}</div>
+          <div style={{ minWidth:0 }}>
+            <p style={{ margin:0, fontSize:'12px', fontWeight:600, color:'#1f2937', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{userName}</p>
+            <p style={{ margin:0, fontSize:'11px', color:'#6b7280' }}>Talaba</p>
           </div>
-          <div style={{ flex: 1 }}>
-            <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>
-              Student
-            </p>
-            <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>
-              Talaba
-            </p>
-          </div>
+          <button onClick={handleLogout} title="Chiqish"
+            style={{ marginLeft:'auto', border:'none', background:'none', cursor:'pointer', color:'#ef4444', flexShrink:0 }}>
+            ⏻
+          </button>
         </div>
       </div>
 
-      <div style={{ flex: 1, marginLeft: '260px' }}>
+      {/* ═══ ASOSIY KONTENT ═══ */}
+      <div style={{ flex:1, marginLeft:'200px', minHeight:'100vh' }}>
+
+        {/* Top navbar */}
         <div style={{
-          backgroundColor: '#ffffff',
-          borderBottom: '1px solid #e5e7eb',
-          padding: '16px 32px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+          height:'56px', background:'transparent',
+          display:'flex', alignItems:'center', justifyContent:'flex-end',
+          padding:'0 24px', gap:'12px'
         }}>
-          <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '700', color: '#1f2937' }}>
-            Guruhlarim
-          </h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <button style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
-              border: '1px solid #e5e7eb',
-              backgroundColor: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              position: 'relative',
-            }}>
-              <FiBell size={20} color="#6b7280" />
-              <span style={{
-                position: 'absolute',
-                top: '8px',
-                right: '8px',
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                backgroundColor: '#ef4444',
-              }}></span>
-            </button>
-            <div style={{ position: 'relative' }}>
-              <div
-                onClick={() => setShowProfileMenu(!showProfileMenu)}
+          {/* 🔔 Bildirishnomalar */}
+          <div style={{ position:'relative' }}>
+            <Badge badgeContent={unreadCount} color="error">
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)}
                 style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  backgroundColor: '#7c3aed',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#ffffff',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                }}
-              >
-                S
-              </div>
-              {showProfileMenu && (
-                <div style={{
-                  position: 'absolute',
-                  top: '50px',
-                  right: '0',
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                  zIndex: 1000,
-                  minWidth: '150px',
+                  width:'36px', height:'36px', borderRadius:'50%',
+                  border:'1px solid #e5e7eb', background:'#fff',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  cursor:'pointer',
                 }}>
-                  <button
-                    onClick={handleLogout}
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      border: 'none',
-                      backgroundColor: 'transparent',
-                      color: '#ef4444',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      borderRadius: '8px',
-                      transition: 'background-color 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#fef2f2';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }}
-                  >
-                    Chiqish
-                  </button>
+                <FiBell size={16} color="#6b7280" />
+              </button>
+            </Badge>
+            
+            {/* Bildirishnomalar paneli */}
+            {showNotifications && (
+              <div 
+                className="notification-panel"
+                style={{
+                position:'absolute', top:'50px', right:0,
+                width:'min(380px, calc(100vw - 20px))', maxHeight:'500px',
+                background:'#fff', borderRadius:'12px',
+                border:'1px solid #e5e7eb',
+                boxShadow:'0 8px 24px rgba(0,0,0,0.15)',
+                zIndex:1000, overflow:'hidden',
+                display:'flex', flexDirection:'column'
+              }}>
+                {/* Header */}
+                <div style={{
+                  padding:'16px 20px',
+                  borderBottom:'1px solid #e5e7eb',
+                  display:'flex', alignItems:'center', justifyContent:'space-between'
+                }}>
+                  <h3 style={{ margin:0, fontSize:'16px', fontWeight:700, color:'#1f2937' }}>
+                    Xabarlar
+                  </h3>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={markAllNotificationsAsRead}
+                      style={{
+                        border:'none', background:'none',
+                        color:'#7c3aed', fontSize:'13px',
+                        fontWeight:600, cursor:'pointer'
+                      }}>
+                      Barchasini o'qilgan deb belgilash
+                    </button>
+                  )}
                 </div>
-              )}
-            </div>
+                
+                {/* Bildirishnomalar ro'yxati */}
+                <div style={{ 
+                  flex:1, overflowY:'auto', 
+                  maxHeight:'420px'
+                }}>
+                  {notifications.length === 0 ? (
+                    <div style={{ 
+                      padding:'48px 20px', 
+                      textAlign:'center', 
+                      color:'#9ca3af' 
+                    }}>
+                      Yangi xabarlar yo'q
+                    </div>
+                  ) : (
+                    notifications.map((notif) => (
+                      <div
+                        key={notif.id}
+                        onClick={() => markNotificationAsRead(notif.id)}
+                        style={{
+                          padding:'16px 20px',
+                          borderBottom:'1px solid #f3f4f6',
+                          background: notif.is_read ? '#fff' : '#f0f9ff',
+                          cursor:'pointer',
+                          transition:'background 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = notif.is_read ? '#fff' : '#f0f9ff'}
+                      >
+                        <div style={{ display:'flex', alignItems:'flex-start', gap:'12px' }}>
+                          <div style={{
+                            width:'40px', height:'40px',
+                            borderRadius:'50%',
+                            background: notif.type === 'COINS' ? '#fef9c3' : '#dbeafe',
+                            display:'flex', alignItems:'center', justifyContent:'center',
+                            fontSize:'20px', flexShrink:0
+                          }}>
+                            {notif.type === 'COINS' ? '💎' : notif.type === 'HOMEWORK_ACCEPTED' ? '✅' : notif.type === 'HOMEWORK_REJECTED' ? '❌' : '📢'}
+                          </div>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <p style={{ 
+                              margin:'0 0 4px', 
+                              fontSize:'14px', 
+                              fontWeight:600, 
+                              color:'#1f2937' 
+                            }}>
+                              {notif.title}
+                            </p>
+                            <p style={{ 
+                              margin:0, 
+                              fontSize:'13px', 
+                              color:'#6b7280',
+                              overflow:'hidden',
+                              textOverflow:'ellipsis',
+                              display:'-webkit-box',
+                              WebkitLineClamp:2,
+                              WebkitBoxOrient:'vertical'
+                            }}>
+                              {notif.message}
+                            </p>
+                            <p style={{ 
+                              margin:'6px 0 0', 
+                              fontSize:'11px', 
+                              color:'#9ca3af' 
+                            }}>
+                              {(() => {
+                                const d = new Date(notif.created_at);
+                                const now = new Date();
+                                const diff = Math.floor((now - d) / 1000 / 60); // minutlar
+                                if (diff < 1) return 'Hozir';
+                                if (diff < 60) return `${diff} daqiqa oldin`;
+                                const hours = Math.floor(diff / 60);
+                                if (hours < 24) return `${hours} soat oldin`;
+                                const days = Math.floor(hours / 24);
+                                return `${days} kun oldin`;
+                              })()}
+                            </p>
+                          </div>
+                          {!notif.is_read && (
+                            <div style={{
+                              width:'8px', height:'8px',
+                              borderRadius:'50%',
+                              background:'#3b82f6',
+                              flexShrink:0,
+                              marginTop:'6px'
+                            }} />
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div onClick={() => setShowProfileMenu(!showProfileMenu)} style={{
+            width:'36px', height:'36px', borderRadius:'50%', background:'#7c3aed',
+            display:'flex', alignItems:'center', justifyContent:'center',
+            color:'#fff', fontWeight:700, cursor:'pointer', fontSize:'14px', position:'relative'
+          }}>
+            {userInitial}
+            {showProfileMenu && (
+              <div style={{
+                position:'absolute', top:'44px', right:0, background:'#fff',
+                border:'1px solid #e5e7eb', borderRadius:'8px',
+                boxShadow:'0 4px 12px rgba(0,0,0,0.1)', zIndex:1000, minWidth:'130px'
+              }}>
+                <button onClick={handleLogout} style={{
+                  width:'100%', padding:'10px 14px', border:'none', background:'none',
+                  color:'#ef4444', fontSize:'13px', cursor:'pointer', textAlign:'left', borderRadius:'8px'
+                }}>Chiqish</button>
+              </div>
+            )}
           </div>
         </div>
 
-        <div style={{ padding: '32px' }}>
-          {!selectedGroupForLessons ? (
-            <>
-              {/* TABS */}
+        {/* PAGE CONTENT */}
+        <div style={{ padding:'0 24px 32px' }}>
+
+          {/* ═══ SOZLAMALAR ═══ */}
+          {activeNav === 'Sozlamalar' && (
+            <div style={{ maxWidth:'800px' }}>
+              <h2 style={{ fontSize:'24px', fontWeight:700, color:'#1f2937', marginBottom:'24px', marginTop:0 }}>
+                Shaxsiy ma'lumotlar
+              </h2>
+
+              {/* Asosiy ma'lumotlar kartasi */}
               <div style={{
-                display: 'flex',
-                gap: '8px',
-                marginBottom: '24px',
+                background:'#fff', borderRadius:'12px', padding:'32px',
+                boxShadow:'0 1px 4px rgba(0,0,0,0.08)', marginBottom:'20px'
               }}>
-                <button
-                  onClick={() => setActiveTab('active')}
-                  style={{
-                    padding: '10px 24px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    backgroundColor: activeTab === 'active' ? '#7c3aed' : '#ffffff',
-                    color: activeTab === 'active' ? '#ffffff' : '#4b5563',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                  }}
-                >
-                  Faol
-                </button>
-                <button
-                  onClick={() => setActiveTab('finished')}
-                  style={{
-                    padding: '10px 24px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    backgroundColor: activeTab === 'finished' ? '#7c3aed' : '#ffffff',
-                    color: activeTab === 'finished' ? '#ffffff' : '#4b5563',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                  }}
-                >
-                  Tugagan
-                </button>
+                {/* Ism va Familiya */}
+                <div style={{ marginBottom:'24px' }}>
+                  <label style={{ display:'block', fontSize:'14px', fontWeight:600, color:'#374151', marginBottom:'8px' }}>
+                    Ism
+                  </label>
+                  <input
+                    type="text"
+                    value={userName}
+                    disabled
+                    style={{
+                      width:'100%', padding:'12px 16px', borderRadius:'8px',
+                      border:'1px solid #e5e7eb', fontSize:'14px',
+                      background:'#f9fafb', color:'#6b7280',
+                      boxSizing:'border-box', cursor:'not-allowed'
+                    }}
+                  />
+                </div>
+
+                {/* Telefon raqam */}
+                <div style={{ marginBottom:'24px' }}>
+                  <label style={{ display:'block', fontSize:'14px', fontWeight:600, color:'#374151', marginBottom:'8px' }}>
+                    Telefon raqam
+                  </label>
+                  <input
+                    type="text"
+                    value={userData.phone || '998901234569'}
+                    disabled
+                    style={{
+                      width:'100%', padding:'12px 16px', borderRadius:'8px',
+                      border:'1px solid #e5e7eb', fontSize:'14px',
+                      background:'#f9fafb', color:'#6b7280',
+                      boxSizing:'border-box', cursor:'not-allowed'
+                    }}
+                  />
+                </div>
+
+                {/* Parol o'zgartirish */}
+                <div style={{ 
+                  background:'#f9fafb', 
+                  padding:'20px', 
+                  borderRadius:'8px',
+                  border:'1px solid #e5e7eb'
+                }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'12px' }}>
+                    <div>
+                      <h3 style={{ margin:'0 0 4px', fontSize:'16px', fontWeight:600, color:'#1f2937' }}>
+                        Parol
+                      </h3>
+                      <p style={{ margin:0, fontSize:'13px', color:'#6b7280' }}>
+                        Hisobingizni himoya qilish uchun parolni o'zgartiring
+                      </p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const newPassword = prompt('Yangi parolni kiriting:');
+                        if (newPassword && newPassword.length >= 6) {
+                          try {
+                            const res = await api.post('/auth/change-password-authenticated', {
+                              new_password: newPassword
+                            });
+                            
+                            if (res.data.success) {
+                              toast.success('Parol muvaffaqiyatli o\'zgartirildi! ✅');
+                            }
+                          } catch (err) {
+                            console.error('Parol o\'zgartirishda xato:', err);
+                            toast.error(err.response?.data?.message || 'Parol o\'zgartirishda xato yuz berdi');
+                          }
+                        } else if (newPassword !== null) {
+                          toast.error('Parol kamida 6 ta belgidan iborat bo\'lishi kerak!');
+                        }
+                      }}
+                      style={{
+                        padding:'10px 20px', borderRadius:'8px',
+                        border:'1px solid #7c3aed', background:'#7c3aed',
+                        color:'#fff', fontSize:'14px', fontWeight:600,
+                        cursor:'pointer', display:'flex', alignItems:'center', gap:'8px',
+                        transition:'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#6d28d9'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = '#7c3aed'}
+                    >
+                      <span style={{ fontSize:'16px' }}>✏️</span>
+                      Parolni o'zgartirish
+                    </button>
+                  </div>
+                  <div style={{ fontSize:'13px', color:'#9ca3af', marginTop:'12px' }}>
+                    ••••••••
+                  </div>
+                </div>
               </div>
 
+              {/* Kirish ma'lumotlari */}
               <div style={{
-                backgroundColor: '#ffffff',
-                borderRadius: '12px',
-                border: '1px solid #e5e7eb',
-                overflow: 'hidden',
+                background:'#fff', borderRadius:'12px', padding:'32px',
+                boxShadow:'0 1px 4px rgba(0,0,0,0.08)'
               }}>
+                <h3 style={{ margin:'0 0 20px', fontSize:'18px', fontWeight:600, color:'#1f2937' }}>
+                  Kirish
+                </h3>
+                
+                <div style={{ display:'flex', flexDirection:'column', gap:'16px' }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 0', borderBottom:'1px solid #f3f4f6' }}>
+                    <span style={{ fontSize:'14px', color:'#6b7280' }}>Telefon</span>
+                    <span style={{ fontSize:'14px', fontWeight:600, color:'#1f2937' }}>
+                      {userData.phone || '998901234569'}
+                    </span>
+                  </div>
+                  
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 0' }}>
+                    <span style={{ fontSize:'14px', color:'#6b7280' }}>Parol</span>
+                    <span style={{ fontSize:'14px', fontWeight:600, color:'#1f2937' }}>
+                      ••••••••
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ═══ GURUHLARIM ═══ */}
+          {activeNav === 'Guruhlarim' && (
+            <div>
+              {!selectedGroupForLessons && (
+                <>
+                  {/* TABS */}
+                  <div style={{ display:'flex', gap:'8px', marginBottom:'20px' }}>
+                    {['active','finished'].map(tab => (
+                      <button key={tab}
+                        onClick={() => setActiveTab(tab)}
+                        style={{
+                          padding:'8px 20px', borderRadius:'8px', border:'none',
+                          background: activeTab === tab ? '#7c3aed' : '#fff',
+                          color: activeTab === tab ? '#fff' : '#4b5563',
+                          fontSize:'13px', fontWeight:600, cursor:'pointer',
+                        }}>
+                        {tab === 'active' ? 'Faol' : 'Tugagan'}
+                      </button>
+                    ))}
+                  </div>
                 {loading ? (
                   <div style={{ padding: '48px', textAlign: 'center', color: '#6b7280' }}>
                     Yuklanmoqda...
@@ -659,94 +957,55 @@ export default function StudentDashboard() {
                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                       <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                        <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>
-                          #
-                        </th>
-                        <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>
-                          Guruh nomi
-                        </th>
-                        <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>
-                          Yo'nalishi
-                        </th>
-                        <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>
-                          O'qituvchi
-                        </th>
-                        <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>
-                          Boshlash vaqti
-                        </th>
+                        <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>#</th>
+                        <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>Guruh nomi</th>
+                        <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>Yo'nalishi</th>
+                        <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>O'qituvchi</th>
+                        <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase' }}>Boshlash vaqti</th>
                       </tr>
                     </thead>
                     <tbody>
                       {groups.map((group, index) => (
-                        <tr
-                          key={group.id || index}
-                          style={{
-                            borderBottom: '1px solid #e5e7eb',
-                            cursor: 'pointer',
-                            transition: 'background-color 0.2s',
-                          }}
+                        <tr key={group.id || index}
+                          style={{ borderBottom: '1px solid #e5e7eb', cursor: 'pointer', transition: 'background-color 0.2s' }}
                           onClick={() => handleGroupClick(group)}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#f9fafb';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                         >
-                          <td style={{ padding: '16px', fontSize: '14px', color: '#374151' }}>
-                            {index + 1}
-                          </td>
+                          <td style={{ padding: '16px', fontSize: '14px', color: '#374151' }}>{index + 1}</td>
                           <td style={{ padding: '16px', fontSize: '14px', color: '#374151', fontWeight: '500' }}>
-                            {group.name || group.group_name || group.groupName || group.title || group.groupTitle || 'Nomsiz guruh'}
+                            {group.name || group.group_name || 'Nomsiz guruh'}
                           </td>
                           <td style={{ padding: '16px', fontSize: '14px', color: '#374151' }}>
-                            {group.course || group.direction || group.course_name || group.courseName || group.subject || '-'}
+                            {group.course || group.course_name || '-'}
                           </td>
                           <td style={{ padding: '16px', fontSize: '14px', color: '#374151' }}>
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenTeachersModal(group);
-                              }}
+                              onClick={(e) => { e.stopPropagation(); handleOpenTeachersModal(group); }}
                               style={{
-                                padding: '6px 12px',
-                                borderRadius: '6px',
-                                border: '1px solid #7c3aed',
-                                backgroundColor: '#ffffff',
-                                color: '#7c3aed',
-                                fontSize: '14px',
-                                fontWeight: '600',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
+                                padding: '6px 12px', borderRadius: '6px',
+                                border: '1px solid #7c3aed', backgroundColor: '#ffffff',
+                                color: '#7c3aed', fontSize: '13px', fontWeight: '600', cursor: 'pointer',
                               }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = '#7c3aed';
-                                e.currentTarget.style.color = '#ffffff';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = '#ffffff';
-                                e.currentTarget.style.color = '#7c3aed';
-                              }}
-                            >
-                              1
-                            </button>
+                              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#7c3aed'; e.currentTarget.style.color = '#ffffff'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#ffffff'; e.currentTarget.style.color = '#7c3aed'; }}
+                            >Ko'rish</button>
                           </td>
                           <td style={{ padding: '16px', fontSize: '14px', color: '#374151' }}>
-                            {formatDate(group.start_date || group.created_at || group.startDate || group.createdAt)}
+                            {formatDate(group.start_date || group.created_at)}
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 )}
-              </div>
-            </>
-          ) : null}
+                </>
+              )}
+            </div>
+          )}
 
           {selectedGroupForLessons && !selectedLesson && (
             <div>
-
-              {/* Uy vazifa statusi filter */}
               <div style={{ marginBottom: '20px' }}>
                 <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#4b5563', fontWeight: '500' }}>
                   Uy vazifa statusi

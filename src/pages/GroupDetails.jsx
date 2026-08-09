@@ -222,10 +222,57 @@ const getTeacherPhoto = (t) =>
   t?.photo || t?.image || t?.avatar || t?.profile_photo || null;
 
 const parseSchedules = (raw) => {
-  const data = raw?.data?.data ?? raw?.data ?? raw ?? [];
+  // Local backend: { days: 'odd'|'even'|'everyday', start_time, end_time }
+  const data = raw?.data?.data ?? raw?.data ?? raw ?? {};
+
+  // ─── Local backend format ───────────────────────────────────────
+  // days: 'odd' (1,3,5), 'even' (2,4,6), 'everyday', yoki 'MONDAY,WEDNESDAY,FRIDAY'
+  if (data && (data.days || data.start_time)) {
+    const today = new Date();
+    const year  = today.getFullYear();
+    const month = today.getMonth(); // 0-indexed
+
+    // Kunlar ro'yxatini aniqlash
+    let weekDayNums = []; // 0=Yakshanba, 1=Dushanba ...
+    const d = String(data.days || '').toLowerCase();
+    if (d === 'odd')      weekDayNums = [1, 3, 5]; // Du, Chor, Ju
+    else if (d === 'even') weekDayNums = [2, 4, 6]; // Se, Pay, Sha
+    else if (d === 'everyday') weekDayNums = [1, 2, 3, 4, 5];
+    else {
+      // 'MONDAY,WEDNESDAY,...' yoki 'Mon,Wed,...'
+      const MAP = { monday:1, tuesday:2, wednesday:3, thursday:4, friday:5, saturday:6, sunday:0,
+                    mon:1, tue:2, wed:3, thu:4, fri:5, sat:6, sun:0 };
+      weekDayNums = d.split(/[,\s]+/).map(s => MAP[s.trim()]).filter(n => n !== undefined);
+      if (!weekDayNums.length) weekDayNums = [1, 3, 5];
+    }
+
+    // Shu oy va keyingi oy uchun kunlarni generatsiya qilish
+    const months = [];
+    for (let mOffset = 0; mOffset < 2; mOffset++) {
+      const y = month + mOffset > 11 ? year + 1 : year;
+      const m = (month + mOffset) % 12;
+      const daysInMonth = new Date(y, m + 1, 0).getDate();
+      const days = [];
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(y, m, day);
+        if (weekDayNums.includes(date.getDay())) {
+          days.push({
+            date: `${y}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+            weekDay: date.getDay(),
+            start_time: data.start_time || '09:00',
+            end_time: data.end_time || '11:00',
+          });
+        }
+      }
+      const MONTHS_UZ = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
+      months.push({ title: `${MONTHS_UZ[m]} ${y}`, isActive: mOffset === 0, days });
+    }
+    return months;
+  }
+
+  // ─── Old backend format (oy-oy tuzilma) ─────────────────────────
   const arr = Array.isArray(data) ? data : [data];
   if (!arr.length || !arr[0]) return [];
-
   const monthObj = arr[0];
   return Object.entries(monthObj)
     .filter(([key]) => !Number.isNaN(Number(key)))
@@ -1129,7 +1176,11 @@ const GroupDetails = () => {
     );
   }
 
-  const teachers = Array.isArray(group.teachers) ? group.teachers : [];
+  const teachers = Array.isArray(group.teachers)
+    ? group.teachers
+    : group.teacher_name
+      ? [{ id: group.teacher_id, full_name: group.teacher_name, photo: group.teacher_photo }]
+      : [];
 
   const studentCount = students.length > 0
     ? students.length
@@ -1191,10 +1242,21 @@ const GroupDetails = () => {
   const renderMonthDays = (month) => (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
       {month.days.map((d, idx) => {
-        const isoDate = scheduleDayToIso(d, new Date().getFullYear(), month.monthNum);
+        // d.date — to'g'ridan-to'g'ri ISO sana (YYYY-MM-DD) yoki eski format
+        const isoDate = d.date
+          ? String(d.date).slice(0, 10)
+          : scheduleDayToIso(d, new Date().getFullYear(), month.monthNum);
+
         const done = isoDate && completedDatesSet.has(isoDate);
-        const { canTake, reason } = isoDate ? canTakeAttendance(isoDate, completedDatesSet) : { canTake: false };
+        const { canTake } = isoDate ? canTakeAttendance(isoDate, completedDatesSet) : { canTake: false };
         const isClickable = Boolean(isoDate) && (canTake || done);
+
+        // Sana raqami va hafta kuni
+        const dateObj = isoDate ? new Date(isoDate + 'T00:00:00') : null;
+        const dayNum  = dateObj ? dateObj.getDate() : (d.day || d.dayNum || idx + 1);
+        const WEEK_SHORT = ['Ya','Du','Se','Ch','Pa','Ju','Sh'];
+        const weekLabel = dateObj ? WEEK_SHORT[dateObj.getDay()] : '';
+        const timeLabel = d.start_time || '';
 
         return (
           <div
@@ -1211,16 +1273,16 @@ const GroupDetails = () => {
                   : (isoDate ? `${isoDate} — hali sana kelmagan` : '')
             }
             style={{
-              width: '60px',
-              height: '70px',
-              border: `2px solid ${done ? '#86efac' : '#e5e7eb'}`,
+              width: '64px',
+              height: '76px',
+              border: `2px solid ${done ? '#86efac' : isClickable ? '#93c5fd' : '#e5e7eb'}`,
               borderRadius: '8px',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center',
               alignItems: 'center',
               gap: '2px',
-              background: done ? '#f0fdf4' : '#fff',
+              background: done ? '#f0fdf4' : isClickable ? '#eff6ff' : '#fff',
               cursor: isClickable ? 'pointer' : 'default',
               transition: 'all 0.18s ease',
               boxShadow: done ? '0 1px 4px rgba(34,197,94,0.15)' : 'none',
@@ -1234,17 +1296,23 @@ const GroupDetails = () => {
               }
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = done ? '#86efac' : '#e5e7eb';
+              e.currentTarget.style.borderColor = done ? '#86efac' : isClickable ? '#93c5fd' : '#e5e7eb';
               e.currentTarget.style.boxShadow = done ? '0 1px 4px rgba(34,197,94,0.15)' : 'none';
               e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
-            <span style={{ fontSize: '12px', color: done ? '#16a34a' : '#6b7280' }}>
-              {MONTH_SHORT[d.month] || d.month?.slice(0, 3) || ''}
+            {/* Hafta kuni */}
+            <span style={{ fontSize: '10px', color: done ? '#16a34a' : '#6b7280', fontWeight: 500 }}>
+              {weekLabel || MONTH_SHORT[d.month] || d.month?.slice(0, 3) || ''}
             </span>
-            <strong style={{ color: done ? '#16a34a' : '#111827', fontWeight: 700 }}>
-              {d.day}
+            {/* Kun raqami */}
+            <strong style={{ fontSize: '20px', color: done ? '#16a34a' : '#111827', fontWeight: 700, lineHeight: 1 }}>
+              {dayNum || d.day}
             </strong>
+            {/* Vaqt */}
+            {timeLabel && (
+              <span style={{ fontSize: '9px', color: '#9ca3af', lineHeight: 1 }}>{timeLabel}</span>
+            )}
             {done && (
               <span style={{ fontSize: '11px', color: '#16a34a', lineHeight: 1 }}>✓</span>
             )}

@@ -469,22 +469,28 @@ const HomeworkCheckPanel = ({ groupId, homework, student, onClose, onUpdate }) =
   /* ── Computed values ── */
   const studentName = getStudentName(student) || submissionData?.student?.full_name || 'Oʻquvchi';
 
-  const files = submissionData?.files || submissionData?.attachments ||
-                submissionData?.answer_files ||
-                (submissionData?.file ? [submissionData.file] : []);
-  const filesArray = Array.isArray(files) ? files : [];
-  const filesCount = filesArray.length;
+  // O'quvchi yuklagan fayl
+  const studentFile = submissionData?.file || submissionData?.answer_file || null;
+  // Fayl URL — backend to'g'ridan-to'g'ri
+  const studentFileUrl = studentFile
+    ? (studentFile.startsWith('http')
+        ? studentFile
+        : `http://localhost:3001${studentFile.startsWith('/') ? '' : '/'}${studentFile}`)
+    : null;
+  const studentFileName = studentFile ? studentFile.split('/').pop() : null;
+  // Kengaytmasiz fayllar multer tomonidan saqlanadi (hash nom) — kengaytmani originalname dan olishga harakat
+  const studentOriginalName = submissionData?.originalname || submissionData?.original_name || studentFileName || '';
+  const isImage = studentOriginalName ? /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(studentOriginalName) : false;
+
+  // O'quvchi yozgan izoh/comment
+  const studentComment = submissionData?.comment || submissionData?.github_link ||
+                         submissionData?.link || submissionData?.answer_link || null;
 
   const submittedAt = submissionData?.submitted_at || submissionData?.created_at ||
                       submissionData?.submittedAt  || submissionData?.createdAt;
 
-  const homeworkLink = submissionData?.link || submissionData?.github_link ||
-                       submissionData?.url  || submissionData?.answer_link;
-
   const homeworkDescription = homework?.description || homework?.title ||
                               homework?.topic || homework?.lesson?.topic || 'Uyga vazifa';
-
-  const homeworkDeadline = homework?.deadline || homework?.due_date || homework?.deadline_at;
 
   const statusVal = submissionData?.status || 'PENDING';
   const statusLabel =
@@ -524,18 +530,9 @@ const HomeworkCheckPanel = ({ groupId, homework, student, onClose, onUpdate }) =
         {/* ═══ UY VAZIFASI CARD ═══ */}
         <Card sx={{ mb: 2, borderRadius: 2, boxShadow: 1 }}>
           <CardContent sx={{ p: 3 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f172a', mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f172a' }}>
               {homeworkDescription}
             </Typography>
-            
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              <Typography variant="body2" sx={{ fontWeight: 600, color: '#dc2626' }}>
-                Uyga vazifa muddati: {formatDate(homeworkDeadline)}
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600, color: '#dc2626' }}>
-                Fayllar soni: {filesCount}
-              </Typography>
-            </Box>
           </CardContent>
         </Card>
 
@@ -588,106 +585,66 @@ const HomeworkCheckPanel = ({ groupId, homework, student, onClose, onUpdate }) =
               </Box>
             </Paper>
 
-            {/* Files + Link */}
+            {/* Fayl va Izoh */}
             <Paper 
               elevation={0}
-              sx={{ 
-                p: 2.5, 
-                borderRadius: 1,
-                bgcolor: '#fff',
-                border: '1px solid #e2e8f0'
-              }}
+              sx={{ p: 2.5, borderRadius: 1, bgcolor: '#fff', border: '1px solid #e2e8f0' }}
             >
-              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, mb: 2 }}>
-                Fayl: <strong style={{ color: '#0f172a' }}>{filesCount}</strong>
-              </Typography>
-
-              {/* Thumbnails */}
-              {filesCount > 0 && (
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2.5 }}>
-                  {filesArray.map((file, idx) => {
-                    const fileName = file.name || file.filename || `File ${idx + 1}`;
-                    let fileUrl = file.url || file.path || file.file_url || file.fileUrl;
-                    if (fileUrl && !fileUrl.startsWith('http')) {
-                      fileUrl = `${BACKEND_API_URL}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`;
-                    }
-                    const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(fileName);
-                    return (
-                      <Box
-                        key={idx}
-                        onClick={() => { if (fileUrl) window.open(fileUrl, '_blank'); }}
-                        sx={{
-                          width: 100,
-                          height: 100,
-                          borderRadius: 1,
-                          overflow: 'hidden',
-                          border: '1px solid #e2e8f0',
-                          bgcolor: '#f8fafc',
-                          cursor: fileUrl ? 'pointer' : 'default',
-                          flexShrink: 0,
-                          transition: 'transform 0.15s',
-                          '&:hover': {
-                            transform: 'scale(1.04)'
-                          }
-                        }}
-                      >
-                        {isImage && fileUrl ? (
-                          <img 
-                            src={fileUrl} 
-                            alt={fileName} 
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                          />
-                        ) : (
-                          <Box sx={{
-                            width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
-                            alignItems: 'center', justifyContent: 'center',
-                            bgcolor: '#f1f5f9', gap: 0.5,
-                          }}>
-                            <AttachFileIcon sx={{ fontSize: 32, color: '#94a3b8' }} />
-                            <Typography variant="caption" sx={{ fontSize: '9px', color: '#64748b', textAlign: 'center', px: 0.5, wordBreak: 'break-all' }}>
-                              {fileName.split('.').pop()?.toUpperCase()}
-                            </Typography>
-                          </Box>
-                        )}
-                      </Box>
-                    );
-                  })}
+              {/* O'quvchi yuklagan fayl */}
+              {studentFileUrl ? (
+                <Box sx={{ mb: 2.5 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, mb: 1 }}>
+                    Yuklangan fayl:
+                  </Typography>
+                  {isImage ? (
+                    <Box
+                      component="img"
+                      src={studentFileUrl}
+                      alt={studentOriginalName}
+                      onClick={() => window.open(studentFileUrl, '_blank')}
+                      onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }}
+                      sx={{
+                        maxWidth: 300, maxHeight: 200, borderRadius: 1,
+                        border: '1px solid #e2e8f0', cursor: 'pointer',
+                        objectFit: 'contain', display: 'block',
+                        '&:hover': { opacity: 0.85 }
+                      }}
+                    />
+                  ) : (
+                    <Box
+                      onClick={() => window.open(studentFileUrl, '_blank')}
+                      sx={{
+                        display: 'inline-flex', alignItems: 'center', gap: 1,
+                        p: '8px 14px', borderRadius: 1, border: '1px solid #e2e8f0',
+                        bgcolor: '#f8fafc', cursor: 'pointer',
+                        '&:hover': { bgcolor: '#f1f5f9' }
+                      }}
+                    >
+                      <AttachFileIcon sx={{ fontSize: 18, color: '#64748b' }} />
+                      <Typography variant="body2" sx={{ color: '#2563eb', fontWeight: 500 }}>
+                        {studentOriginalName || studentFileName}
+                      </Typography>
+                    </Box>
+                  )}
                 </Box>
+              ) : (
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Fayl yuklanmagan
+                </Typography>
               )}
 
-              {/* Link / Izoh */}
-              <Box sx={{ 
-                p: 2, 
-                borderRadius: 1,
-                bgcolor: '#f8fafc',
-                borderLeft: '4px solid #3b82f6'
-              }}>
+              {/* O'quvchi yozgan izoh */}
+              <Box sx={{ p: 2, borderRadius: 1, bgcolor: '#f8fafc', borderLeft: '4px solid #3b82f6' }}>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500, display: 'block', mb: 0.5 }}>
                   Uyga vazifa izohi:
                 </Typography>
-                {homeworkLink ? (
-                  <Box 
-                    component="a"
-                    href={homeworkLink}
-                    target="_blank"
-                    rel="noreferrer"
-                    sx={{ 
-                      fontSize: '14px', 
-                      color: '#2563eb', 
-                      fontWeight: 600, 
-                      textDecoration: 'none', 
-                      wordBreak: 'break-all',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 0.5
-                    }}
-                  >
-                    <LinkIcon fontSize="small" />
-                    {homeworkLink}
-                  </Box>
+                {studentComment ? (
+                  <Typography variant="body2" sx={{ color: '#0f172a', fontWeight: 500, wordBreak: 'break-all' }}>
+                    {studentComment}
+                  </Typography>
                 ) : (
                   <Typography variant="body2" color="text.secondary">
-                    Izoh yoki link kiritilmagan.
+                    Izoh kiritilmagan
                   </Typography>
                 )}
               </Box>
