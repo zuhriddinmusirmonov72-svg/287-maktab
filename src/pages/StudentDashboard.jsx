@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { studentsAPI, lessonsAPI, filesAPI, homeworkAPI, loadVideoForPlayback, coinsAPI, notificationsAPI, api } from '../api/api';
-import { FiUsers, FiBarChart2, FiAward, FiBookOpen, FiSettings, FiBell, FiX, FiPlay, FiUpload, FiFileText, FiClock, FiCheckCircle, FiAlertCircle, FiUsers as FiUsersIcon, FiChevronUp, FiChevronDown, FiMenu } from 'react-icons/fi';
+import { FiUsers, FiBarChart2, FiAward, FiBookOpen, FiSettings, FiBell, FiX, FiPlay, FiUpload, FiFileText, FiClock, FiCheckCircle, FiAlertCircle, FiUsers as FiUsersIcon, FiChevronUp, FiChevronDown, FiMenu, FiFilm } from 'react-icons/fi';
 import TeachersModal from '../components/TeachersModal';
+import ReelsViewer from '../components/ReelsViewer';
 import NajotLogo from '../assets/Najot.png';
 import {
   Box,
@@ -69,6 +70,9 @@ export default function StudentDashboard() {
   
   // 📱 Mobile menu state
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // 🎬 Reels viewer state
+  const [isReelsOpen, setIsReelsOpen] = useState(false);
 
   useEffect(() => {
     fetchMyGroups();
@@ -481,6 +485,7 @@ export default function StudentDashboard() {
 
   const navItems = [
     { name: "Guruhlarim", icon: <FiUsers size={18} /> },
+    { name: "Reels", icon: <FiFilm size={18} /> },
     { name: "Ko'rsatgichlarim", icon: <FiBarChart2 size={18} /> },
     { name: "Reyting", icon: <FiAward size={18} /> },
     { name: "Qo'shimcha darslar", icon: <FiBookOpen size={18} /> },
@@ -578,12 +583,17 @@ export default function StudentDashboard() {
             return (
               <button key={item.name}
                 onClick={() => {
-                  setActiveNav(item.name);
-                  if (item.name === 'Guruhlarim') {
-                    setSelectedGroupForLessons(null);
-                    setSelectedLesson(null);
+                  if (item.name === 'Reels') {
+                    setIsReelsOpen(true);
+                    closeMobileMenu();
+                  } else {
+                    setActiveNav(item.name);
+                    if (item.name === 'Guruhlarim') {
+                      setSelectedGroupForLessons(null);
+                      setSelectedLesson(null);
+                    }
+                    closeMobileMenu();
                   }
-                  closeMobileMenu(); // Mobile menuni yopish
                 }}
                 style={{
                   width:'100%', padding:'10px 12px', marginBottom:'2px',
@@ -1584,6 +1594,9 @@ export default function StudentDashboard() {
         onClose={handleCloseTeachersModal}
         group={selectedGroup}
       />
+      {isReelsOpen && (
+        <ReelsViewer onClose={() => setIsReelsOpen(false)} />
+      )}
     </div>
   );
 }

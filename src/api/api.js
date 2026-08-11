@@ -757,6 +757,16 @@ export const notificationsAPI = {
 };
 
 // =============================================
+// 🎬 REELS — Instagram videolari
+// =============================================
+export const reelsAPI = {
+  getAll: () => api.get("/reels"),
+  create: (data) => api.post("/reels", data),
+  delete: (id) => api.delete(`/reels/${id}`),
+  markAsViewed: (id) => api.post(`/reels/${id}/view`),
+};
+
+// =============================================
 // 🎓 EXAMS — localStorage (backend hali yo'q)
 // =============================================
 

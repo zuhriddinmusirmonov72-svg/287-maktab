@@ -29,8 +29,9 @@
     
     <title>287-maktab LMS</title>
     
-    <!-- Service Worker Registration -->
+    <!-- Service Worker Registration - DISABLED FOR DEVELOPMENT -->
     <script>
+      /* Service Worker temporarily disabled - enable for production
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js')
@@ -42,6 +43,8 @@
             });
         });
       }
+      */
+      console.log('⚠️ Service Worker disabled for development');
     </script>
   </head>
   <body>

@@ -22,6 +22,7 @@ import homeworkRoutes   from './routes/homework.js';
 import filesRoutes      from './routes/files.js';
 import coinsRoutes      from './routes/coins.js';
 import notificationsRoutes from './routes/notifications.js';
+import reelsRoutes      from './routes/reels.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3001;
@@ -104,6 +105,7 @@ api.use('/attendance',    attendanceRoutes);
 api.use('/files',         filesRoutes);
 api.use('/coins',         coinsRoutes);
 api.use('/notifications', notificationsRoutes);
+api.use('/reels',         reelsRoutes);
 
 // Homework ikki prefix bilan:
 //   /homework/all, /homework/:groupId, /homework/:id  → prefix: /homework
