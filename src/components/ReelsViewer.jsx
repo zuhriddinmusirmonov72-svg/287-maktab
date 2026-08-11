@@ -1,64 +1,160 @@
 import { useState, useEffect, useRef } from 'react';
 import { reelsAPI } from '../api/api';
-import { FiPlay, FiPause, FiVolume2, FiVolumeX, FiHeart, FiMessageCircle, FiShare2, FiChevronUp, FiChevronDown } from 'react-icons/fi';
+import { 
+  FiX, 
+  FiHeart, 
+  FiEye, 
+  FiPlay, 
+  FiPause, 
+  FiVolume2, 
+  FiVolumeX,
+  FiChevronUp,
+  FiChevronDown,
+  FiUpload
+} from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import './ReelsViewer.css';
 
-export default function ReelsViewer({ onClose }) {
+export default function ReelsViewer({ onClose, onUploadClick }) {
   const [reels, setReels] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true); // Avtomatik o'ynashi uchun muted bo'lishi kerak
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  
+  const videoRefs = useRef([]);
   const containerRef = useRef(null);
+  const touchStartY = useRef(0);
 
   useEffect(() => {
     fetchReels();
   }, []);
 
-  // Current video ko'rilganda mark as viewed
+  // Birinchi video yuklanganda avtomatik play
   useEffect(() => {
-    if (reels.length > 0 && reels[currentIndex]) {
+    if (reels.length > 0) {
       const timer = setTimeout(() => {
-        reelsAPI.markAsViewed(reels[currentIndex]._id).catch(() => {});
-      }, 1000); // 1 soniya ko'rgandan keyin
-      
+        playCurrentVideo();
+      }, 100);
       return () => clearTimeout(timer);
     }
-  }, [currentIndex, reels]);
+  }, [reels]);
 
-  const fetchReels = async () => {
+  useEffect(() => {
+    // Auto-play current video
+    playCurrentVideo();
+    
+    // Scroll to current video
+    if (containerRef.current) {
+      containerRef.current.scrollTo({
+        top: currentIndex * window.innerHeight,
+        behavior: 'smooth'
+      });
+    }
+  }, [currentIndex]);
+
+  const fetchReels = async (pageNum = 1) => {
     try {
-      const res = await reelsAPI.getAll();
+      setLoading(true);
+      const res = await reelsAPI.getAll(pageNum, 10);
       const data = res?.data?.data || [];
-      setReels(Array.isArray(data) ? data : []);
+      
+      if (pageNum === 1) {
+        setReels(data);
+      } else {
+        setReels(prev => [...prev, ...data]);
+      }
+      
+      setHasMore(res?.data?.pagination?.hasNext || false);
+      setPage(pageNum);
     } catch (err) {
       console.error('Reels yuklashda xato:', err);
-      toast.error('Videolarni yuklashda xato');
+      toast.error('Videolarni yuklashda xatolik yuz berdi');
     } finally {
       setLoading(false);
     }
   };
 
-  const extractInstagramEmbedUrl = (url) => {
-    // Instagram URL'dan embed URL yaratish va autoplay qo'shish
-    // https://www.instagram.com/reel/ABC123/ → https://www.instagram.com/reel/ABC123/embed?autoplay=1
-    let embedUrl = url;
-    
-    if (!embedUrl.includes('/embed')) {
-      embedUrl = embedUrl.endsWith('/') ? embedUrl + 'embed' : embedUrl + '/embed';
+  const playCurrentVideo = () => {
+    // Pause all videos
+    videoRefs.current.forEach((video, idx) => {
+      if (video && idx !== currentIndex) {
+        video.pause();
+      }
+    });
+
+    // Play current video
+    const currentVideo = videoRefs.current[currentIndex];
+    if (currentVideo) {
+      currentVideo.muted = isMuted; // Ensure muted state
+      if (isPlaying) {
+        // Force play with promise handling
+        const playPromise = currentVideo.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              console.log('Video playing successfully');
+            })
+            .catch(err => {
+              console.log('Autoplay prevented, trying muted:', err);
+              // If autoplay fails, try with muted
+              currentVideo.muted = true;
+              setIsMuted(true);
+              currentVideo.play().catch(e => console.error('Play failed:', e));
+            });
+        }
+      }
     }
-    
-    // Autoplay parametrini qo'shish (Instagram Reels uchun)
-    if (!embedUrl.includes('autoplay')) {
-      embedUrl += embedUrl.includes('?') ? '&autoplay=1' : '?autoplay=1';
-    }
-    
-    return embedUrl;
   };
 
-  const handleNext = () => {
-    if (currentIndex < reels.length - 1) {
-      setCurrentIndex(currentIndex + 1);
+  const handleLike = async (reelId, index) => {
+    try {
+      const res = await reelsAPI.like(reelId);
+      
+      setReels(prevReels => 
+        prevReels.map((reel, idx) => 
+          idx === index 
+            ? { 
+                ...reel, 
+                is_liked: res.data.liked,
+                likes: res.data.likes
+              }
+            : reel
+        )
+      );
+    } catch (err) {
+      console.error('Like xato:', err);
+      toast.error('Like qo\'yishda xatolik');
+    }
+  };
+
+  const handleView = async (reelId) => {
+    try {
+      await reelsAPI.view(reelId);
+    } catch (err) {
+      console.error('View xato:', err);
+    }
+  };
+
+  const handlePlayPause = () => {
+    const currentVideo = videoRefs.current[currentIndex];
+    if (currentVideo) {
+      if (isPlaying) {
+        currentVideo.pause();
+      } else {
+        currentVideo.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const handleMute = () => {
+    const currentVideo = videoRefs.current[currentIndex];
+    if (currentVideo) {
+      currentVideo.muted = !isMuted;
+      setIsMuted(!isMuted);
     }
   };
 
@@ -68,213 +164,342 @@ export default function ReelsViewer({ onClose }) {
     }
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'ArrowUp') handlePrevious();
-    if (e.key === 'ArrowDown') handleNext();
-    if (e.key === 'Escape') onClose();
+  const handleNext = () => {
+    if (currentIndex < reels.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+      
+      // Load more if near end
+      if (currentIndex >= reels.length - 3 && hasMore && !loading) {
+        fetchReels(page + 1);
+      }
+    }
+  };
+
+  const handleTouchStart = (e) => {
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e) => {
+    const touchEndY = e.changedTouches[0].clientY;
+    const diff = touchStartY.current - touchEndY;
+
+    if (Math.abs(diff) > 50) {
+      if (diff > 0 && currentIndex < reels.length - 1) {
+        handleNext();
+      } else if (diff < 0 && currentIndex > 0) {
+        handlePrevious();
+      }
+    }
+  };
+
+  const handleScroll = (e) => {
+    const scrollTop = e.target.scrollTop;
+    const newIndex = Math.round(scrollTop / window.innerHeight);
+    
+    if (newIndex !== currentIndex && newIndex >= 0 && newIndex < reels.length) {
+      setCurrentIndex(newIndex);
+    }
+  };
+
+  const handleVideoClick = (e) => {
+    // Don't toggle play/pause if clicking on buttons
+    if (e.target.closest('.reels-actions') || e.target.closest('.reels-info')) {
+      return;
+    }
+    handlePlayPause();
   };
 
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex]);
+    // Register view when video becomes visible
+    const currentReel = reels[currentIndex];
+    if (currentReel) {
+      handleView(currentReel._id);
+    }
+  }, [currentIndex, reels]);
 
-  if (loading) {
+  if (loading && reels.length === 0) {
     return (
-      <div style={{
-        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-        background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 9999, color: '#fff'
-      }}>
-        Yuklanmoqda...
+      <div className="reels-viewer">
+        <button className="reels-close" onClick={onClose}>
+          <FiX size={28} />
+        </button>
+
+        {/* Upload button - loading state uchun ham */}
+        {onUploadClick && (
+          <button 
+            className="reels-upload-btn" 
+            onClick={onUploadClick}
+            style={{
+              position: 'fixed',
+              top: '20px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              border: '3px solid white',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              zIndex: 10001,
+              transition: 'all 0.2s',
+              boxShadow: '0 4px 20px rgba(124, 58, 237, 0.6)',
+              fontSize: '32px',
+              fontWeight: '300',
+              lineHeight: '1'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateX(-50%) scale(1.1)';
+              e.currentTarget.style.boxShadow = '0 6px 24px rgba(124, 58, 237, 0.8)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateX(-50%) scale(1)';
+              e.currentTarget.style.boxShadow = '0 4px 20px rgba(124, 58, 237, 0.6)';
+            }}
+          >
+            +
+          </button>
+        )}
+
+        <div className="reels-loading">
+          <div className="spinner"></div>
+          <p>Videolar yuklanmoqda...</p>
+        </div>
       </div>
     );
   }
 
   if (reels.length === 0) {
     return (
-      <div style={{
-        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-        background: '#000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        zIndex: 9999, color: '#fff', gap: '20px'
-      }}>
-        <p style={{ fontSize: '18px' }}>Hozircha videolar yo'q</p>
-        <button
-          onClick={onClose}
-          style={{
-            padding: '12px 24px', background: '#7c3aed', border: 'none',
-            borderRadius: '8px', color: '#fff', cursor: 'pointer', fontSize: '16px'
-          }}>
-          Orqaga
+      <div className="reels-viewer">
+        <button className="reels-close" onClick={onClose}>
+          <FiX size={28} />
         </button>
+
+        {/* Upload button - empty state uchun ham */}
+        {onUploadClick && (
+          <button 
+            className="reels-upload-btn" 
+            onClick={onUploadClick}
+            style={{
+              position: 'fixed',
+              top: '20px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              border: '3px solid white',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              zIndex: 10001,
+              transition: 'all 0.2s',
+              boxShadow: '0 4px 20px rgba(124, 58, 237, 0.6)',
+              fontSize: '32px',
+              fontWeight: '300',
+              lineHeight: '1'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateX(-50%) scale(1.1)';
+              e.currentTarget.style.boxShadow = '0 6px 24px rgba(124, 58, 237, 0.8)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateX(-50%) scale(1)';
+              e.currentTarget.style.boxShadow = '0 4px 20px rgba(124, 58, 237, 0.6)';
+            }}
+          >
+            +
+          </button>
+        )}
+
+        <div className="reels-empty">
+          <FiEye size={64} />
+          <h3>Hozircha videolar yo'q</h3>
+          <p>Birinchi bo'lib video yuklang!</p>
+        </div>
       </div>
     );
   }
 
-  const currentReel = reels[currentIndex];
-
   return (
-    <div
-      ref={containerRef}
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: '#000',
-        zIndex: 9999,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden'
-      }}>
-      
-      {/* Header */}
-      <div style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 10,
-        background: 'linear-gradient(180deg, rgba(0,0,0,0.7) 0%, transparent 100%)',
-        padding: '16px 20px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div style={{ color: '#fff', fontSize: '18px', fontWeight: 700 }}>
-          Reels
-        </div>
-        <button
-          onClick={onClose}
+    <div className="reels-viewer">
+      <button className="reels-close" onClick={onClose}>
+        <FiX size={28} />
+      </button>
+
+      {/* Upload button - tepada markazda + belgisi */}
+      {onUploadClick && (
+        <button 
+          className="reels-upload-btn" 
+          onClick={onUploadClick}
           style={{
-            width: '36px',
-            height: '36px',
+            position: 'fixed',
+            top: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: '56px',
+            height: '56px',
             borderRadius: '50%',
-            border: 'none',
-            background: 'rgba(255,255,255,0.2)',
-            color: '#fff',
-            fontSize: '20px',
-            cursor: 'pointer',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            border: '3px solid white',
+            color: 'white',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-          ×
-        </button>
-      </div>
-
-      {/* Video Container */}
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative'
-      }}>
-        {/* Instagram Embed */}
-        <iframe
-          key={currentReel._id}
-          src={extractInstagramEmbedUrl(currentReel.instagram_url)}
-          style={{
-            width: '100%',
-            maxWidth: '500px',
-            height: '100%',
-            border: 'none',
-            borderRadius: 0
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 10001,
+            transition: 'all 0.2s',
+            boxShadow: '0 4px 20px rgba(124, 58, 237, 0.6)',
+            fontSize: '32px',
+            fontWeight: '300',
+            lineHeight: '1'
           }}
-          loading="eager"
-          allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share; fullscreen"
-          allowFullScreen
-          sandbox="allow-scripts allow-same-origin allow-popups allow-presentation"
-        />
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateX(-50%) scale(1.1)';
+            e.currentTarget.style.boxShadow = '0 6px 24px rgba(124, 58, 237, 0.8)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateX(-50%) scale(1)';
+            e.currentTarget.style.boxShadow = '0 4px 20px rgba(124, 58, 237, 0.6)';
+          }}
+        >
+          +
+        </button>
+      )}
 
-        {/* Navigation Buttons */}
-        {currentIndex > 0 && (
-          <button
-            onClick={handlePrevious}
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '20px',
-              transform: 'translateY(-50%)',
-              width: '48px',
-              height: '48px',
-              borderRadius: '50%',
-              border: 'none',
-              background: 'rgba(255,255,255,0.3)',
-              color: '#fff',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '24px'
-            }}>
-            <FiChevronUp />
-          </button>
-        )}
+      <div 
+        className="reels-container"
+        ref={containerRef}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onScroll={handleScroll}
+      >
+        {reels.map((reel, index) => (
+          <div 
+            key={reel._id} 
+            className={`reel-item ${index === currentIndex ? 'active' : ''}`}
+            onClick={handleVideoClick}
+          >
+            <video
+              ref={el => videoRefs.current[index] = el}
+              src={`${import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:3002'}${reel.video_url}`}
+              loop
+              playsInline
+              autoPlay={index === currentIndex}
+              muted={isMuted}
+              className="reel-video"
+              preload="metadata"
+              onLoadedData={(e) => {
+                // Video yuklanganda avtomatik play
+                if (index === currentIndex && isPlaying) {
+                  e.target.play().catch(err => {
+                    console.log('Autoplay failed, trying muted:', err);
+                    e.target.muted = true;
+                    setIsMuted(true);
+                    e.target.play().catch(e => console.error('Play failed:', e));
+                  });
+                }
+              }}
+              onEnded={() => {
+                if (index < reels.length - 1) {
+                  handleNext();
+                }
+              }}
+            />
 
-        {currentIndex < reels.length - 1 && (
-          <button
-            onClick={handleNext}
-            style={{
-              position: 'absolute',
-              top: '50%',
-              right: '20px',
-              transform: 'translateY(-50%)',
-              width: '48px',
-              height: '48px',
-              borderRadius: '50%',
-              border: 'none',
-              background: 'rgba(255,255,255,0.3)',
-              color: '#fff',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '24px'
-            }}>
-            <FiChevronDown />
-          </button>
-        )}
-      </div>
+            {/* Info overlay */}
+            <div className="reels-info">
+              <div className="uploader-info">
+                <div className="uploader-avatar">
+                  {(reel.uploader_name || 'U').charAt(0).toUpperCase()}
+                </div>
+                <span className="uploader-name">{reel.uploader_name}</span>
+              </div>
+              
+              {reel.title && reel.title !== 'Video' && (
+                <p className="reel-title">{reel.title}</p>
+              )}
+            </div>
 
-      {/* Bottom Info */}
-      <div style={{
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        zIndex: 10,
-        background: 'linear-gradient(0deg, rgba(0,0,0,0.7) 0%, transparent 100%)',
-        padding: '20px',
-        color: '#fff'
-      }}>
-        <div style={{ marginBottom: '8px', fontSize: '16px', fontWeight: 600 }}>
-          {currentReel.title}
-        </div>
-        {currentReel.description && (
-          <div style={{ fontSize: '14px', opacity: 0.9 }}>
-            {currentReel.description}
+            {/* Actions sidebar */}
+            <div className="reels-actions">
+              <button 
+                className={`action-btn like-btn ${reel.is_liked ? 'liked' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleLike(reel._id, index);
+                }}
+              >
+                <FiHeart size={28} fill={reel.is_liked ? 'currentColor' : 'none'} />
+                <span>{reel.likes || 0}</span>
+              </button>
+
+              <div className="action-btn view-count">
+                <FiEye size={28} />
+                <span>{reel.views || 0}</span>
+              </div>
+
+              <button 
+                className="action-btn mute-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleMute();
+                }}
+              >
+                {isMuted ? <FiVolumeX size={28} /> : <FiVolume2 size={28} />}
+              </button>
+            </div>
+
+            {/* Navigation arrows */}
+            {currentIndex > 0 && (
+              <button 
+                className="nav-arrow nav-up"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePrevious();
+                }}
+              >
+                <FiChevronUp size={32} />
+              </button>
+            )}
+            
+            {currentIndex < reels.length - 1 && (
+              <button 
+                className="nav-arrow nav-down"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNext();
+                }}
+              >
+                <FiChevronDown size={32} />
+              </button>
+            )}
+
+            {/* Play/Pause indicator */}
+            {!isPlaying && (
+              <div className="play-overlay">
+                <FiPlay size={64} />
+              </div>
+            )}
           </div>
-        )}
-        <div style={{ fontSize: '12px', opacity: 0.7, marginTop: '8px' }}>
-          {currentIndex + 1} / {reels.length}
-        </div>
+        ))}
       </div>
 
-      {/* Mobile Swipe Instructions */}
-      <div style={{
-        position: 'absolute',
-        bottom: '80px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        color: 'rgba(255,255,255,0.6)',
-        fontSize: '12px',
-        textAlign: 'center',
-        pointerEvents: 'none'
-      }}>
-        ↑ ↓ tugmalari bilan o'ting
+      {/* Progress indicator */}
+      <div className="reels-progress">
+        {reels.map((_, idx) => (
+          <div 
+            key={idx}
+            className={`progress-dot ${idx === currentIndex ? 'active' : ''} ${idx < currentIndex ? 'watched' : ''}`}
+          />
+        ))}
       </div>
     </div>
   );

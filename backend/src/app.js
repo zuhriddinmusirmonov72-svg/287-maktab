@@ -25,7 +25,7 @@ import notificationsRoutes from './routes/notifications.js';
 import reelsRoutes      from './routes/reels.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 
 // Papkalarni yaratish
 ['uploads/photos', 'uploads/videos', 'uploads/homeworks', 'data'].forEach(dir => {

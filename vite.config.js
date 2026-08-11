@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-const API_TARGET = 'http://localhost:3001'
+const API_TARGET = 'http://localhost:3002'
 
 const apiProxy = {
   target: API_TARGET,

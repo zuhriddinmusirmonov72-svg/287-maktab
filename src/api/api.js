@@ -757,13 +757,16 @@ export const notificationsAPI = {
 };
 
 // =============================================
-// 🎬 REELS — Instagram videolari
+// 🎬 REELS — O'z video platformamiz
 // =============================================
 export const reelsAPI = {
-  getAll: () => api.get("/reels"),
-  create: (data) => api.post("/reels", data),
+  getAll: (page = 1, limit = 10) =>
+    api.get(`/reels?page=${page}&limit=${limit}`),
+  upload: (formData) =>
+    apiForm.post('/reels', formData),
+  like: (id) => api.post(`/reels/${id}/like`),
+  view: (id) => api.post(`/reels/${id}/view`),
   delete: (id) => api.delete(`/reels/${id}`),
-  markAsViewed: (id) => api.post(`/reels/${id}/view`),
 };
 
 // =============================================

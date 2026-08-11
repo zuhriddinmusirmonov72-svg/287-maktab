@@ -1,0 +1,426 @@
+.reels-viewer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #000;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.reels-close {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  border: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10001;
+  transition: all 0.2s;
+}
+
+.reels-close:hover {
+  background: rgba(0, 0, 0, 0.8);
+  transform: scale(1.05);
+}
+
+.reels-container {
+  width: 100%;
+  height: 100vh;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.reels-container::-webkit-scrollbar {
+  display: none;
+}
+
+.reel-item {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  scroll-snap-align: start;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+}
+
+.reel-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  max-height: 100vh;
+}
+
+/* Info overlay */
+.reels-info {
+  position: absolute;
+  bottom: 100px;
+  left: 20px;
+  right: 100px;
+  color: white;
+  z-index: 10;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+.uploader-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.uploader-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 18px;
+  border: 2px solid white;
+}
+
+.uploader-name {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.reel-title {
+  font-size: 14px;
+  margin: 0;
+  line-height: 1.4;
+  max-width: 80%;
+}
+
+/* Actions sidebar */
+.reels-actions {
+  position: absolute;
+  right: 20px;
+  bottom: 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  z-index: 10;
+}
+
+.action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  border: none;
+  border-radius: 50%;
+  width: 56px;
+  height: 56px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 8px;
+}
+
+.action-btn:hover {
+  background: rgba(0, 0, 0, 0.6);
+  transform: scale(1.1);
+}
+
+.action-btn span {
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: -4px;
+}
+
+.like-btn.liked {
+  color: #ff4458;
+}
+
+.view-count {
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Navigation arrows */
+.nav-arrow {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  border: none;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s;
+}
+
+.nav-arrow:hover {
+  background: rgba(0, 0, 0, 0.6);
+  transform: translateX(-50%) scale(1.1);
+}
+
+.nav-up {
+  top: 80px;
+}
+
+.nav-down {
+  bottom: 20px;
+}
+
+/* Play overlay */
+.play-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  pointer-events: none;
+  animation: fadeIn 0.2s;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* Progress indicator */
+.reels-progress {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 10;
+  max-width: 90%;
+  overflow-x: auto;
+  padding: 8px 16px;
+  scrollbar-width: none;
+}
+
+.reels-progress::-webkit-scrollbar {
+  display: none;
+}
+
+.progress-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+
+.progress-dot.active {
+  background: white;
+  width: 24px;
+  border-radius: 3px;
+}
+
+.progress-dot.watched {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+/* Loading state */
+.reels-loading,
+.reels-empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: white;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.reels-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 32px;
+}
+
+.reels-empty h3 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.reels-empty p {
+  margin: 0;
+  font-size: 16px;
+  opacity: 0.8;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .reels-close {
+    width: 40px;
+    height: 40px;
+    top: 16px;
+    right: 16px;
+  }
+
+  .reels-upload-btn {
+    width: 52px !important;
+    height: 52px !important;
+    top: 16px !important;
+    font-size: 30px !important;
+  }
+
+  .reels-info {
+    bottom: 80px;
+    left: 16px;
+    right: 80px;
+  }
+
+  .uploader-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+
+  .uploader-name {
+    font-size: 14px;
+  }
+
+  .reel-title {
+    font-size: 13px;
+  }
+
+  .reels-actions {
+    right: 12px;
+    bottom: 80px;
+    gap: 20px;
+  }
+
+  .action-btn {
+    width: 48px;
+    height: 48px;
+  }
+
+  .action-btn svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .nav-arrow {
+    width: 40px;
+    height: 40px;
+  }
+
+  .nav-up {
+    top: 60px;
+  }
+
+  .reels-progress {
+    top: 60px;
+  }
+}
+
+@media (max-width: 425px) {
+  .reels-upload-btn {
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 28px !important;
+  }
+
+  .reels-info {
+    bottom: 60px;
+    left: 12px;
+    right: 72px;
+  }
+
+  .reels-actions {
+    bottom: 60px;
+    gap: 16px;
+  }
+
+  .action-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  .action-btn svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .action-btn span {
+    font-size: 11px;
+  }
+}
+
+/* Landscape orientation */
+@media (orientation: landscape) and (max-height: 600px) {
+  .reel-video {
+    object-fit: cover;
+  }
+
+  .reels-info {
+    bottom: 20px;
+  }
+
+  .reels-actions {
+    bottom: 20px;
+  }
+
+  .nav-up {
+    top: 20px;
+  }
+
+  .nav-down {
+    bottom: 20px;
+  }
+}

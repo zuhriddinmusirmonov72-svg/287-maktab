@@ -12,7 +12,8 @@ router.post('/login', async (req, res) => {
     const { phone, password } = req.body;
     if (!phone || !password) return res.status(400).json({ message: 'Telefon va parol kiritilishi shart' });
 
-    const user = await db.findOne(collections.users, { phone });
+    // Phoneni xuddi kiritilganidek qidirish (998 qo'shmasdan)
+    const user = await db.findOne(collections.users, { phone: phone.trim() });
     if (!user) return res.status(401).json({ message: 'Telefon yoki parol noto\'g\'ri' });
 
     if (!bcrypt.compareSync(password, user.password))

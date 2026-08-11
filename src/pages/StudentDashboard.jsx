@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { studentsAPI, lessonsAPI, filesAPI, homeworkAPI, loadVideoForPlayback, coinsAPI, notificationsAPI, api } from '../api/api';
+import { studentsAPI, lessonsAPI, filesAPI, homeworkAPI, loadVideoForPlayback, coinsAPI, notificationsAPI, api, reelsAPI } from '../api/api';
 import { FiUsers, FiBarChart2, FiAward, FiBookOpen, FiSettings, FiBell, FiX, FiPlay, FiUpload, FiFileText, FiClock, FiCheckCircle, FiAlertCircle, FiUsers as FiUsersIcon, FiChevronUp, FiChevronDown, FiMenu, FiFilm } from 'react-icons/fi';
 import TeachersModal from '../components/TeachersModal';
 import ReelsViewer from '../components/ReelsViewer';
@@ -73,6 +73,11 @@ export default function StudentDashboard() {
   
   // 🎬 Reels viewer state
   const [isReelsOpen, setIsReelsOpen] = useState(false);
+  const [isReelsUploadOpen, setIsReelsUploadOpen] = useState(false);
+  const [reelsVideoFile, setReelsVideoFile] = useState(null);
+  const [reelsTitle, setReelsTitle] = useState('');
+  const [reelsUploading, setReelsUploading] = useState(false);
+  const [reelsUploadProgress, setReelsUploadProgress] = useState(0);
 
   useEffect(() => {
     fetchMyGroups();
@@ -163,6 +168,77 @@ export default function StudentDashboard() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     window.location.href = '/login';
+  };
+
+  // 🎬 Reels video yuklash
+  const handleReelsVideoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 100MB limit
+    const maxSize = 100 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error('Video hajmi 100MB dan oshmasligi kerak!');
+      return;
+    }
+
+    // Video formatlarini tekshirish
+    const validTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-msvideo'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Faqat video fayllar yuklanadi (MP4, WebM, MOV, AVI)!');
+      return;
+    }
+
+    setReelsVideoFile(file);
+  };
+
+  const handleReelsUpload = async () => {
+    if (!reelsVideoFile) {
+      toast.error('Video faylni tanlang!');
+      return;
+    }
+
+    try {
+      setReelsUploading(true);
+      setReelsUploadProgress(0);
+
+      const formData = new FormData();
+      formData.append('video', reelsVideoFile);
+      formData.append('title', reelsTitle || 'Video');
+
+      // Upload with progress tracking
+      const res = await api.post('/reels', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
+          setReelsUploadProgress(percentCompleted);
+        }
+      });
+
+      if (res.data.success) {
+        toast.success('Video muvaffaqiyatli yuklandi! ✅');
+        setIsReelsUploadOpen(false);
+        setReelsVideoFile(null);
+        setReelsTitle('');
+        setReelsUploadProgress(0);
+      }
+    } catch (err) {
+      console.error('Video yuklashda xato:', err);
+      toast.error('Video yuklashda xatolik: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setReelsUploading(false);
+    }
+  };
+
+  const handleCancelReelsUpload = () => {
+    setIsReelsUploadOpen(false);
+    setReelsVideoFile(null);
+    setReelsTitle('');
+    setReelsUploadProgress(0);
   };
 
   const handleOpenTeachersModal = (group) => {
@@ -584,6 +660,7 @@ export default function StudentDashboard() {
               <button key={item.name}
                 onClick={() => {
                   if (item.name === 'Reels') {
+                    // Show Reels viewer directly - upload button will be inside
                     setIsReelsOpen(true);
                     closeMobileMenu();
                   } else {
@@ -1595,8 +1672,121 @@ export default function StudentDashboard() {
         group={selectedGroup}
       />
       {isReelsOpen && (
-        <ReelsViewer onClose={() => setIsReelsOpen(false)} />
+        <ReelsViewer 
+          onClose={() => setIsReelsOpen(false)}
+          onUploadClick={() => {
+            setIsReelsOpen(false);
+            setIsReelsUploadOpen(true);
+          }}
+        />
       )}
+
+      {/* 🎬 Reels Video Upload Modal */}
+      <Dialog 
+        open={isReelsUploadOpen} 
+        onClose={handleCancelReelsUpload}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <FiFilm size={24} style={{ color: '#7c3aed' }} />
+              <span>Video yuklash</span>
+            </div>
+            <IconButton onClick={handleCancelReelsUpload} size="small">
+              <FiX />
+            </IconButton>
+          </div>
+        </DialogTitle>
+        
+        <DialogContent>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingTop: '8px' }}>
+            
+            {/* Video tanlash */}
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600, color: '#374151' }}>
+                Video fayl *
+              </label>
+              <input
+                type="file"
+                accept="video/mp4,video/webm,video/ogg,video/quicktime,video/x-msvideo"
+                onChange={handleReelsVideoChange}
+                disabled={reelsUploading}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '2px dashed #d1d5db',
+                  borderRadius: '8px',
+                  cursor: 'pointer'
+                }}
+              />
+              {reelsVideoFile && (
+                <div style={{ marginTop: '8px', padding: '8px 12px', background: '#f0fdf4', borderRadius: '6px', fontSize: '13px', color: '#16a34a' }}>
+                  ✓ {reelsVideoFile.name} ({(reelsVideoFile.size / (1024 * 1024)).toFixed(2)} MB)
+                </div>
+              )}
+              <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#6b7280' }}>
+                MP4, WebM, MOV, AVI (max 100MB)
+              </p>
+            </div>
+
+            {/* Sarlavha */}
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600, color: '#374151' }}>
+                Sarlavha (ixtiyoriy)
+              </label>
+              <TextField
+                fullWidth
+                placeholder="Video haqida qisqacha..."
+                value={reelsTitle}
+                onChange={(e) => setReelsTitle(e.target.value)}
+                disabled={reelsUploading}
+                variant="outlined"
+                size="small"
+              />
+            </div>
+
+            {/* Progress bar */}
+            {reelsUploading && (
+              <div>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={reelsUploadProgress} 
+                  sx={{ height: 8, borderRadius: 4 }}
+                />
+                <p style={{ margin: '8px 0 0', fontSize: '13px', textAlign: 'center', color: '#6b7280' }}>
+                  Yuklanmoqda... {reelsUploadProgress}%
+                </p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+
+        <DialogActions>
+          <Button 
+            onClick={handleCancelReelsUpload} 
+            disabled={reelsUploading}
+            color="inherit"
+          >
+            Bekor qilish
+          </Button>
+          <Button 
+            onClick={handleReelsUpload}
+            disabled={reelsUploading || !reelsVideoFile}
+            variant="contained"
+            sx={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #5568d3 0%, #65408b 100%)',
+              }
+            }}
+            startIcon={reelsUploading ? <CircularProgress size={16} color="inherit" /> : <FiUpload />}
+          >
+            {reelsUploading ? 'Yuklanmoqda...' : 'Yuklash'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 }

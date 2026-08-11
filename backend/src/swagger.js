@@ -113,6 +113,61 @@ export const swaggerDoc = {
     },
     '/attendance/all': { get: { tags: ['Attendance'], summary: 'Barcha davomat', responses: { 200: { description: 'OK' } } } },
     '/attendance': { post: { tags: ['Attendance'], summary: 'Davomat qo\'shish', requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { group_id: { type: 'integer' }, student_id: { type: 'integer' }, lesson_id: { type: 'integer' }, isPresent: { type: 'boolean' } } } } } }, responses: { 201: { description: 'OK' } } } },
-    '/student-group': { post: { tags: ['StudentGroup'], summary: 'O\'quvchini guruhga qo\'shish', requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { student_id: { type: 'integer' }, group_id: { type: 'integer' } } } } } }, responses: { 201: { description: 'OK' } } } }
+    '/student-group': { post: { tags: ['StudentGroup'], summary: 'O\'quvchini guruhga qo\'shish', requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { student_id: { type: 'integer' }, group_id: { type: 'integer' } } } } } }, responses: { 201: { description: 'OK' } } } },
+    '/reels': {
+      get: { 
+        tags: ['Reels'], 
+        summary: 'Barcha reelslar (pagination)', 
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 10 } }
+        ],
+        responses: { 200: { description: 'OK' } } 
+      },
+      post: { 
+        tags: ['Reels'], 
+        summary: 'Yangi video yuklash (multipart, max 100MB)', 
+        requestBody: { 
+          content: { 
+            'multipart/form-data': { 
+              schema: { 
+                type: 'object', 
+                properties: { 
+                  video: { type: 'string', format: 'binary', description: 'Video fayl (MP4, WebM, MOV, AVI)' },
+                  title: { type: 'string', example: 'Mening videom', description: 'Video sarlavhasi (ixtiyoriy)' },
+                  description: { type: 'string', description: 'Video tavsifi (ixtiyoriy)' }
+                }, 
+                required: ['video'] 
+              } 
+            } 
+          } 
+        }, 
+        responses: { 201: { description: 'Video yuklandi' } } 
+      }
+    },
+    '/reels/{id}/like': {
+      post: { 
+        tags: ['Reels'], 
+        summary: 'Like / Unlike toggle', 
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: 'Like holatini o\'zgartirdi' } } 
+      }
+    },
+    '/reels/{id}/view': {
+      post: { 
+        tags: ['Reels'], 
+        summary: 'Ko\'rishlar sonini oshirish', 
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: 'View qo\'shildi' } } 
+      }
+    },
+    '/reels/{id}': {
+      delete: { 
+        tags: ['Reels'], 
+        summary: 'Video o\'chirish (faqat owner yoki admin)', 
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { 200: { description: 'Video o\'chirildi' } } 
+      }
+    }
   }
 };

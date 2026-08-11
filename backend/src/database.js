@@ -46,15 +46,41 @@ export async function nextId(col) {
 }
 
 export async function initDB() {
+  // SUPER ADMIN - har doim tekshir, yo'q bo'lsa qo'sh
+  const superAdminExists = await db.findOne(collections.users, { phone: '975661099' });
+  if (!superAdminExists) {
+    const allUsers = await db.find(collections.users, {});
+    const maxId = allUsers.length > 0 ? Math.max(...allUsers.map(u => u.id || 0)) : 0;
+    await db.insert(collections.users, {
+      id: maxId + 1,
+      phone: '975661099',
+      password: bcrypt.hashSync('Mohidil', 10),
+      role: 'SUPER ADMIN',
+      full_name: 'Super Admin'
+    });
+    console.log('✅ SUPER ADMIN yaratildi: 975661099 / Mohidil');
+  }
+
   const count = await db.count(collections.users);
-  if (count > 0) return;
+  // Faqat bitta user bo'lsa (SUPER ADMIN), seed data yukla
+  if (count > 1) return;
 
   console.log('📦 Seed ma\'lumotlar yuklanmoqda...');
 
   // Users
-  const u1 = await db.insert(collections.users, { id: 1, phone: '998901234567', password: bcrypt.hashSync('admin123', 10), role: 'superadmin' });
-  const u2 = await db.insert(collections.users, { id: 2, phone: '998901234568', password: bcrypt.hashSync('teacher123', 10), role: 'teacher' });
-  const u3 = await db.insert(collections.users, { id: 3, phone: '998901234569', password: bcrypt.hashSync('student123', 10), role: 'student' });
+  // 🔐 MAXSUS SUPER ADMIN - Mohidil
+  const superAdmin = await db.insert(collections.users, { 
+    id: 1, 
+    phone: '998975661099', 
+    password: bcrypt.hashSync('Mohidil', 10), 
+    role: 'SUPER ADMIN',
+    full_name: 'Mohidil (Super Admin)'
+  });
+  
+  // Default users (test uchun)
+  const u1 = await db.insert(collections.users, { id: 2, phone: '998901234567', password: bcrypt.hashSync('admin123', 10), role: 'ADMIN', full_name: 'Admin Test' });
+  const u2 = await db.insert(collections.users, { id: 3, phone: '998901234568', password: bcrypt.hashSync('teacher123', 10), role: 'TEACHER', full_name: 'O\'qituvchi Test' });
+  const u3 = await db.insert(collections.users, { id: 4, phone: '998901234569', password: bcrypt.hashSync('student123', 10), role: 'STUDENT', full_name: 'O\'quvchi Test' });
 
   // Rooms
   await db.insert(collections.rooms, { id: 1, name: '1-xona', capacity: 25, is_archived: false });
@@ -65,10 +91,10 @@ export async function initDB() {
   await db.insert(collections.courses, { id: 2, name: 'Backend', description: 'Node.js, NestJS', duration: 6, price: 1200000, is_archived: false });
 
   // Teachers
-  await db.insert(collections.teachers, { id: 1, user_id: 2, full_name: 'Sardor Usmonov', phone: '998901234568', subject: 'Frontend', photo: null, is_archived: false });
+  await db.insert(collections.teachers, { id: 1, user_id: 3, full_name: 'Sardor Usmonov', phone: '998901234568', subject: 'Frontend', photo: null, is_archived: false });
 
   // Students
-  await db.insert(collections.students, { id: 1, user_id: 3, full_name: 'Jahongir Karimov', phone: '998901234569', photo: null, is_archived: false, coins: 0, xp: 0 });
+  await db.insert(collections.students, { id: 1, user_id: 4, full_name: 'Jahongir Karimov', phone: '998901234569', photo: null, is_archived: false, coins: 0, xp: 0 });
 
   // Groups
   await db.insert(collections.groups, { id: 1, name: 'Frontend-1', course_id: 1, teacher_id: 1, room_id: 1, max_student: 20, days: 'odd', start_time: '09:00', end_time: '11:00', start_date: '2026-01-01', is_archived: false });
@@ -84,7 +110,14 @@ export async function initDB() {
   await db.insert(collections.homeworks, { id: 1, lesson_id: 1, group_id: 1, title: 'HTML jadval yaratish', description: 'table, tr, td elementlaridan foydalaning' });
 
   console.log('✅ Seed ma\'lumotlar yuklandi!');
-  console.log('👤 Login: SUPERADMIN: 998901234567 / admin123');
-  console.log('👤 Login: TEACHER:    998901234568 / teacher123');
-  console.log('👤 Login: STUDENT:    998901234569 / student123');
+  console.log('');
+  console.log('� ═══════════════════════════════════════════');
+  console.log('👑 SUPER ADMIN: 975661099 / Mohidil');
+  console.log('🔐 ═══════════════════════════════════════════');
+  console.log('');
+  console.log('📝 Test login ma\'lumotlari:');
+  console.log('👤 ADMIN:    998901234567 / admin123');
+  console.log('👤 TEACHER:  998901234568 / teacher123');
+  console.log('👤 STUDENT:  998901234569 / student123');
+  console.log('');
 }
