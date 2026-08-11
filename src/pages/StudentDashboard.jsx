@@ -32,6 +32,7 @@ import toast from 'react-hot-toast';
 
 export default function StudentDashboard() {
   const [activeTab, setActiveTab] = useState('active');
+  const [activeNav, setActiveNav] = useState('Guruhlarim'); // Navigation uchun
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
