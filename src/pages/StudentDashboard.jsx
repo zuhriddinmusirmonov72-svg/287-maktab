@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { studentsAPI, lessonsAPI, filesAPI, homeworkAPI, loadVideoForPlayback, coinsAPI, notificationsAPI, api } from '../api/api';
 import { FiUsers, FiBarChart2, FiAward, FiBookOpen, FiSettings, FiBell, FiX, FiPlay, FiUpload, FiFileText, FiClock, FiCheckCircle, FiAlertCircle, FiUsers as FiUsersIcon, FiChevronUp, FiChevronDown, FiMenu } from 'react-icons/fi';
 import TeachersModal from '../components/TeachersModal';
+import NajotLogo from '../assets/Najot.png';
 import {
   Box,
   Typography,
