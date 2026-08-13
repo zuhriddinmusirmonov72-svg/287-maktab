@@ -514,23 +514,45 @@ const HomeworkCheckPanel = ({ groupId, homework, student, onClose, onUpdate }) =
   const scoreColor = score >= 60 ? '#10b981' : '#ef4444';
 
   return (
-    <Box sx={{ width: '100%', p: 2 }}>
+    <Box sx={{ 
+      width: '100%', 
+      p: { xs: 1, sm: 2 },
+      minHeight: '100vh',
+      bgcolor: '#f8fafc'
+    }}>
       <Box sx={{ maxWidth: 900, mx: 'auto' }}>
 
         {/* ═══ HEADER ═══ */}
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-          <IconButton onClick={onClose} sx={{ mr: 2 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          mb: { xs: 2, sm: 3 },
+          position: 'sticky',
+          top: 0,
+          bgcolor: '#f8fafc',
+          zIndex: 10,
+          py: 1
+        }}>
+          <IconButton onClick={onClose} sx={{ mr: { xs: 1, sm: 2 } }}>
             <ArrowBackIcon />
           </IconButton>
-          <Typography variant="h5" sx={{ fontWeight: 700, color: '#0f172a' }}>
+          <Typography variant="h5" sx={{ 
+            fontWeight: 700, 
+            color: '#0f172a',
+            fontSize: { xs: '18px', sm: '24px' }
+          }}>
             Uyga vazifa
           </Typography>
         </Box>
 
         {/* ═══ UY VAZIFASI CARD ═══ */}
         <Card sx={{ mb: 2, borderRadius: 2, boxShadow: 1 }}>
-          <CardContent sx={{ p: 3 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f172a' }}>
+          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+            <Typography variant="h6" sx={{ 
+              fontWeight: 700, 
+              color: '#0f172a',
+              fontSize: { xs: '16px', sm: '20px' }
+            }}>
               {homeworkDescription}
             </Typography>
           </CardContent>
@@ -538,12 +560,26 @@ const HomeworkCheckPanel = ({ groupId, homework, student, onClose, onUpdate }) =
 
         {/* ═══ STUDENT CARD ═══ */}
         <Card sx={{ mb: 3, borderRadius: 2, boxShadow: 1 }}>
-          <CardContent sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-              <Avatar sx={{ width: 56, height: 56, bgcolor: '#10b981', fontSize: 24 }}>
+          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: { xs: 1.5, sm: 2 }, 
+              mb: { xs: 2, sm: 3 }
+            }}>
+              <Avatar sx={{ 
+                width: { xs: 40, sm: 56 }, 
+                height: { xs: 40, sm: 56 }, 
+                bgcolor: '#10b981', 
+                fontSize: { xs: 18, sm: 24 }
+              }}>
                 {studentName.charAt(0).toUpperCase()}
               </Avatar>
-              <Typography variant="h4" sx={{ fontSize: '26px', fontWeight: 700, color: '#0f172a' }}>
+              <Typography variant="h4" sx={{ 
+                fontSize: { xs: '18px', sm: '26px' }, 
+                fontWeight: 700, 
+                color: '#0f172a' 
+              }}>
                 {studentName}
               </Typography>
             </Box>
@@ -552,13 +588,14 @@ const HomeworkCheckPanel = ({ groupId, homework, student, onClose, onUpdate }) =
             <Paper 
               elevation={0}
               sx={{ 
-                p: 2.5, 
+                p: { xs: 1.5, sm: 2.5 }, 
                 borderRadius: 1,
                 bgcolor: '#fff',
                 border: '1px solid #e2e8f0',
                 display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
                 flexWrap: 'wrap',
-                gap: 4,
+                gap: { xs: 2, sm: 4 },
                 mb: 2
               }}
             >
@@ -588,12 +625,16 @@ const HomeworkCheckPanel = ({ groupId, homework, student, onClose, onUpdate }) =
             {/* Fayl va Izoh */}
             <Paper 
               elevation={0}
-              sx={{ p: 2.5, borderRadius: 1, bgcolor: '#fff', border: '1px solid #e2e8f0' }}
+              sx={{ p: { xs: 1.5, sm: 2.5 }, borderRadius: 1, bgcolor: '#fff', border: '1px solid #e2e8f0' }}
             >
               {/* O'quvchi yuklagan fayl */}
               {studentFileUrl ? (
                 <Box sx={{ mb: 2.5 }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, mb: 1 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ 
+                    fontWeight: 500, 
+                    mb: 1,
+                    fontSize: { xs: '13px', sm: '14px' }
+                  }}>
                     Yuklangan fayl:
                   </Typography>
                   {isImage ? (
@@ -604,9 +645,13 @@ const HomeworkCheckPanel = ({ groupId, homework, student, onClose, onUpdate }) =
                       onClick={() => window.open(studentFileUrl, '_blank')}
                       onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }}
                       sx={{
-                        maxWidth: 300, maxHeight: 200, borderRadius: 1,
-                        border: '1px solid #e2e8f0', cursor: 'pointer',
-                        objectFit: 'contain', display: 'block',
+                        maxWidth: { xs: '100%', sm: 300 }, 
+                        maxHeight: { xs: 150, sm: 200 }, 
+                        borderRadius: 1,
+                        border: '1px solid #e2e8f0', 
+                        cursor: 'pointer',
+                        objectFit: 'contain', 
+                        display: 'block',
                         '&:hover': { opacity: 0.85 }
                       }}
                     />
@@ -614,36 +659,69 @@ const HomeworkCheckPanel = ({ groupId, homework, student, onClose, onUpdate }) =
                     <Box
                       onClick={() => window.open(studentFileUrl, '_blank')}
                       sx={{
-                        display: 'inline-flex', alignItems: 'center', gap: 1,
-                        p: '8px 14px', borderRadius: 1, border: '1px solid #e2e8f0',
-                        bgcolor: '#f8fafc', cursor: 'pointer',
+                        display: 'inline-flex', 
+                        alignItems: 'center', 
+                        gap: 1,
+                        p: '8px 14px', 
+                        borderRadius: 1, 
+                        border: '1px solid #e2e8f0',
+                        bgcolor: '#f8fafc', 
+                        cursor: 'pointer',
+                        maxWidth: '100%',
                         '&:hover': { bgcolor: '#f1f5f9' }
                       }}
                     >
                       <AttachFileIcon sx={{ fontSize: 18, color: '#64748b' }} />
-                      <Typography variant="body2" sx={{ color: '#2563eb', fontWeight: 500 }}>
+                      <Typography variant="body2" sx={{ 
+                        color: '#2563eb', 
+                        fontWeight: 500,
+                        fontSize: { xs: '12px', sm: '14px' },
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
                         {studentOriginalName || studentFileName}
                       </Typography>
                     </Box>
                   )}
                 </Box>
               ) : (
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ 
+                  mb: 2,
+                  fontSize: { xs: '13px', sm: '14px' }
+                }}>
                   Fayl yuklanmagan
                 </Typography>
               )}
 
               {/* O'quvchi yozgan izoh */}
-              <Box sx={{ p: 2, borderRadius: 1, bgcolor: '#f8fafc', borderLeft: '4px solid #3b82f6' }}>
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500, display: 'block', mb: 0.5 }}>
+              <Box sx={{ 
+                p: { xs: 1.5, sm: 2 }, 
+                borderRadius: 1, 
+                bgcolor: '#f8fafc', 
+                borderLeft: '4px solid #3b82f6' 
+              }}>
+                <Typography variant="caption" color="text.secondary" sx={{ 
+                  fontWeight: 500, 
+                  display: 'block', 
+                  mb: 0.5,
+                  fontSize: { xs: '11px', sm: '12px' }
+                }}>
                   Uyga vazifa izohi:
                 </Typography>
                 {studentComment ? (
-                  <Typography variant="body2" sx={{ color: '#0f172a', fontWeight: 500, wordBreak: 'break-all' }}>
+                  <Typography variant="body2" sx={{ 
+                    color: '#0f172a', 
+                    fontWeight: 500, 
+                    wordBreak: 'break-all',
+                    fontSize: { xs: '13px', sm: '14px' }
+                  }}>
                     {studentComment}
                   </Typography>
                 ) : (
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary" sx={{
+                    fontSize: { xs: '13px', sm: '14px' }
+                  }}>
                     Izoh kiritilmagan
                   </Typography>
                 )}
@@ -677,13 +755,19 @@ const HomeworkCheckPanel = ({ groupId, homework, student, onClose, onUpdate }) =
           <CardHeader 
             title="Ball"
             titleTypographyProps={{ 
-              fontSize: '18px', 
+              fontSize: { xs: '16px', sm: '18px' }, 
               fontWeight: 700,
               color: '#0f172a'
             }}
+            sx={{ pb: { xs: 1, sm: 2 } }}
           />
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+          <CardContent sx={{ pt: 0 }}>
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: { xs: 'column', sm: 'row' },
+              alignItems: { xs: 'stretch', sm: 'center' }, 
+              gap: { xs: 2, sm: 3 } 
+            }}>
               <Box sx={{ flex: 1, position: 'relative', pb: 3 }}>
                 <Slider
                   value={score}
@@ -692,18 +776,18 @@ const HomeworkCheckPanel = ({ groupId, homework, student, onClose, onUpdate }) =
                   max={100}
                   sx={{
                     color: scoreColor,
-                    height: 8,
+                    height: { xs: 6, sm: 8 },
                     '& .MuiSlider-thumb': {
-                      width: 24,
-                      height: 24,
+                      width: { xs: 20, sm: 24 },
+                      height: { xs: 20, sm: 24 },
                       boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
                     },
                     '& .MuiSlider-track': {
-                      height: 8,
+                      height: { xs: 6, sm: 8 },
                       borderRadius: 4,
                     },
                     '& .MuiSlider-rail': {
-                      height: 8,
+                      height: { xs: 6, sm: 8 },
                       borderRadius: 4,
                       bgcolor: '#e2e8f0',
                     },
@@ -711,16 +795,19 @@ const HomeworkCheckPanel = ({ groupId, homework, student, onClose, onUpdate }) =
                 />
                 {/* O'tish bali marker at 60% */}
                 <Box sx={{
-                  position: 'absolute', left: '60%', top: 6,
+                  position: 'absolute', left: '60%', top: { xs: 4, sm: 6 },
                   transform: 'translateX(-50%)',
-                  width: '2px', height: 20, bgcolor: '#cbd5e1',
+                  width: '2px', height: { xs: 16, sm: 20 }, bgcolor: '#cbd5e1',
                 }} />
                 <Typography 
                   variant="caption" 
                   sx={{
                     position: 'absolute', bottom: 0, left: '60%',
                     transform: 'translateX(-50%)',
-                    fontSize: '12px', color: '#94a3b8', fontWeight: 500, whiteSpace: 'nowrap',
+                    fontSize: { xs: '10px', sm: '12px' }, 
+                    color: '#94a3b8', 
+                    fontWeight: 500, 
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   O'tish bali
@@ -732,9 +819,9 @@ const HomeworkCheckPanel = ({ groupId, homework, student, onClose, onUpdate }) =
                 onChange={(e) => setScore(Math.max(0, Math.min(100, Number(e.target.value))))}
                 inputProps={{ min: 0, max: 100 }}
                 sx={{
-                  width: 80,
+                  width: { xs: '100%', sm: 80 },
                   '& .MuiOutlinedInput-input': {
-                    fontSize: '18px',
+                    fontSize: { xs: '16px', sm: '18px' },
                     fontWeight: 700,
                     color: scoreColor,
                     textAlign: 'center',
@@ -750,12 +837,13 @@ const HomeworkCheckPanel = ({ groupId, homework, student, onClose, onUpdate }) =
           <CardHeader 
             title="Fayllar"
             titleTypographyProps={{ 
-              fontSize: '18px', 
+              fontSize: { xs: '16px', sm: '18px' }, 
               fontWeight: 700,
               color: '#0f172a'
             }}
+            sx={{ pb: { xs: 1, sm: 2 } }}
           />
-          <CardContent>
+          <CardContent sx={{ pt: 0 }}>
             <Box
               onClick={() => document.getElementById('teacher-hw-file').click()}
               onDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files?.[0]) setTeacherFile(e.dataTransfer.files[0]); }}
@@ -763,7 +851,7 @@ const HomeworkCheckPanel = ({ groupId, homework, student, onClose, onUpdate }) =
               sx={{
                 border: '2px dashed #10b981',
                 borderRadius: 2,
-                p: 4,
+                p: { xs: 2, sm: 4 },
                 textAlign: 'center',
                 cursor: 'pointer',
                 bgcolor: '#f0fdf4',
@@ -773,11 +861,22 @@ const HomeworkCheckPanel = ({ groupId, homework, student, onClose, onUpdate }) =
                 }
               }}
             >
-              <CloudUploadIcon sx={{ fontSize: 48, color: '#10b981', mb: 1 }} />
-              <Typography variant="body1" sx={{ color: '#1e293b', fontWeight: 500, mb: 0.5 }}>
+              <CloudUploadIcon sx={{ 
+                fontSize: { xs: 36, sm: 48 }, 
+                color: '#10b981', 
+                mb: 1 
+              }} />
+              <Typography variant="body1" sx={{ 
+                color: '#1e293b', 
+                fontWeight: 500, 
+                mb: 0.5,
+                fontSize: { xs: '13px', sm: '16px' }
+              }}>
                 Faylni yuklash uchun ushbu hudud ustiga bosing yoki faylni shu yerga olib keling
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" color="text.secondary" sx={{
+                fontSize: { xs: '11px', sm: '14px' }
+              }}>
                 .jpg, .png, .pdf, .mp4, .docs formatlaridan birida bo'lishi mumkin
               </Typography>
               <input
@@ -788,22 +887,48 @@ const HomeworkCheckPanel = ({ groupId, homework, student, onClose, onUpdate }) =
 
             {teacherFile && (
               <Box sx={{
-                mt: 1.5, p: 1.5, bgcolor: '#dcfce7',
-                borderRadius: 1, display: 'flex', alignItems: 'center',
-                justifyContent: 'space-between', border: '1px solid #bbf7d0',
+                mt: 1.5, 
+                p: { xs: 1, sm: 1.5 }, 
+                bgcolor: '#dcfce7',
+                borderRadius: 1, 
+                display: 'flex', 
+                alignItems: 'center',
+                justifyContent: 'space-between', 
+                border: '1px solid #bbf7d0',
+                gap: 1
               }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <AttachFileIcon sx={{ color: '#166534', fontSize: 20 }} />
-                  <Typography variant="body2" sx={{ color: '#166534', fontWeight: 500 }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 1,
+                  minWidth: 0,
+                  flex: 1
+                }}>
+                  <AttachFileIcon sx={{ 
+                    color: '#166534', 
+                    fontSize: { xs: 18, sm: 20 },
+                    flexShrink: 0
+                  }} />
+                  <Typography variant="body2" sx={{ 
+                    color: '#166534', 
+                    fontWeight: 500,
+                    fontSize: { xs: '12px', sm: '14px' },
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
                     {teacherFile.name}
                   </Typography>
                 </Box>
                 <IconButton
                   size="small"
                   onClick={(e) => { e.stopPropagation(); setTeacherFile(null); }}
-                  sx={{ color: '#166534' }}
+                  sx={{ 
+                    color: '#166534',
+                    flexShrink: 0
+                  }}
                 >
-                  <CloseIcon />
+                  <CloseIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
                 </IconButton>
               </Box>
             )}
@@ -815,12 +940,13 @@ const HomeworkCheckPanel = ({ groupId, homework, student, onClose, onUpdate }) =
           <CardHeader 
             title="Izoh"
             titleTypographyProps={{ 
-              fontSize: '18px', 
+              fontSize: { xs: '16px', sm: '18px' }, 
               fontWeight: 700,
               color: '#0f172a'
             }}
+            sx={{ pb: { xs: 1, sm: 2 } }}
           />
-          <CardContent>
+          <CardContent sx={{ pt: 0 }}>
             <TextField
               fullWidth
               multiline
@@ -831,6 +957,7 @@ const HomeworkCheckPanel = ({ groupId, homework, student, onClose, onUpdate }) =
               sx={{
                 '& .MuiOutlinedInput-root': {
                   bgcolor: '#f8fafc',
+                  fontSize: { xs: '14px', sm: '16px' },
                   '&:hover fieldset': {
                     borderColor: '#10b981',
                   },
@@ -844,18 +971,25 @@ const HomeworkCheckPanel = ({ groupId, homework, student, onClose, onUpdate }) =
         </Card>
 
         {/* ═══ ACTION BUTTONS ═══ */}
-        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: 2, 
+          justifyContent: 'flex-end',
+          mb: { xs: 2, sm: 0 }
+        }}>
           <Button
             variant="outlined"
             onClick={onClose}
             disabled={isSubmitting}
+            fullWidth={{ xs: true, sm: false }}
             sx={{
-              px: 4,
+              px: { xs: 3, sm: 4 },
               py: 1.5,
               borderColor: '#e2e8f0',
               color: '#64748b',
               fontWeight: 600,
-              fontSize: '15px',
+              fontSize: { xs: '14px', sm: '15px' },
               '&:hover': {
                 borderColor: '#cbd5e1',
                 bgcolor: '#f8fafc'
@@ -868,14 +1002,15 @@ const HomeworkCheckPanel = ({ groupId, homework, student, onClose, onUpdate }) =
             variant="contained"
             onClick={handleSubmit}
             disabled={isSubmitting}
+            fullWidth={{ xs: true, sm: false }}
             startIcon={isSubmitting ? <CircularProgress size={16} color="inherit" /> : <SendIcon />}
             sx={{
-              px: 5,
+              px: { xs: 3, sm: 5 },
               py: 1.5,
               bgcolor: isSubmitting ? '#6ee7b7' : '#10b981',
               color: '#fff',
               fontWeight: 700,
-              fontSize: '15px',
+              fontSize: { xs: '14px', sm: '15px' },
               '&:hover': {
                 bgcolor: isSubmitting ? '#6ee7b7' : '#059669',
               },
