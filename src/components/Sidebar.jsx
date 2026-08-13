@@ -1,12 +1,13 @@
 import { useState, useContext } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { FaHome, FaUsers, FaUserGraduate, FaGift, FaCog, FaBell, FaChevronLeft, FaBook, FaDoorOpen, FaUserTie, FaCoins, FaPaperPlane, FaGem, FaSignOutAlt, FaUser } from 'react-icons/fa';
+import { FaHome, FaUsers, FaUserGraduate, FaGift, FaCog, FaBell, FaChevronLeft, FaBook, FaDoorOpen, FaUserTie, FaCoins, FaPaperPlane, FaGem, FaSignOutAlt, FaUser, FaBars, FaCheckDouble } from 'react-icons/fa';
 import NajotLogo from '../assets/Najot.png';
 import { AppContext } from '../context/AppContext';
 
 const Sidebar = ({ isOpen, onToggle }) => {
   const [isManagementOpen, setIsManagementOpen] = useState(false);
   const [isTeacherGroupsOpen, setIsTeacherGroupsOpen] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // ✅ Mobile menu state
   const navigate = useNavigate();
   const { t } = useContext(AppContext);
 
@@ -20,16 +21,61 @@ const Sidebar = ({ isOpen, onToggle }) => {
   const isTeacher = role === 'teacher';
 
   const navLinks = [
-    { name: t.home,     path: isTeacher ? '/super-admin-2/dashboard' : '/dashboard', icon: <FaHome size={18} />, end: true },
+    // ❌ Asosiy bo'limini olib tashladik
+    // { name: t.home, path: isTeacher ? '/super-admin-2/dashboard' : '/dashboard', icon: <FaHome size={18} />, end: true },
     ...(!isTeacher ? [{ name: t.teachers, path: '/teachers',  icon: <FaUserGraduate size={18} /> }] : []),
     { name: t.groups,   path: isTeacher ? '/super-admin-2/groups' : '/groups',    icon: <FaUsers size={18} /> },
     { name: t.students, path: isTeacher ? '/super-admin-2/students' : '/students',  icon: <FaGem size={18} /> },
-    { name: t.gifts,    path: isTeacher ? '/super-admin-2/gifts' : '/gifts',     icon: <FaGift size={18} /> },
+    { name: "To'lov qilganlar",    path: '/payments',     icon: <FaCoins size={18} /> }, // ✅ Barcha rollar uchun
   ];
 
   return (
     <div style={{ display: 'flex', position: 'relative' }}>
-      <div className={`sidebar ${!isOpen ? 'collapsed' : ''}`} style={{ position: 'relative', zIndex: 20 }}>
+      
+      {/* 📱 MOBILE HAMBURGER BUTTON - Tepada chap burchakda */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        style={{
+          display: 'none', // Desktop'da yo'q
+          position: 'fixed',
+          top: '16px',
+          left: '16px',
+          zIndex: 1001,
+          width: '44px',
+          height: '44px',
+          borderRadius: '12px',
+          background: '#7c3aed',
+          border: 'none',
+          color: 'white',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          boxShadow: '0 4px 12px rgba(124, 58, 237, 0.4)',
+        }}
+        className="mobile-menu-toggle"
+      >
+        <FaBars size={20} />
+      </button>
+
+      {/* 📱 MOBILE OVERLAY */}
+      {isMobileMenuOpen && (
+        <div
+          onClick={() => setIsMobileMenuOpen(false)}
+          style={{
+            display: 'none', // Desktop'da yo'q
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 999,
+          }}
+          className="mobile-menu-overlay"
+        />
+      )}
+
+      <div className={`sidebar ${!isOpen ? 'collapsed' : ''} ${isMobileMenuOpen ? 'mobile-open' : ''}`} style={{ position: 'relative', zIndex: 20 }}>
 
         {/* LOGO */}
         <div style={{ 
@@ -92,6 +138,14 @@ const Sidebar = ({ isOpen, onToggle }) => {
                   </div>
                 )}
               </div>
+              <NavLink
+                to="/super-admin-2/payments-review"
+                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                style={{ marginTop: '4px' }}
+              >
+                <FaCheckDouble size={18} />
+                <span className="nav-link-text">Cheklarni tasdiqlash</span>
+              </NavLink>
               <NavLink
                 to="/super-admin-2/profile"
                 className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}

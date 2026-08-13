@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { studentsAPI, lessonsAPI, filesAPI, homeworkAPI, loadVideoForPlayback, coinsAPI, notificationsAPI, api, reelsAPI } from '../api/api';
-import { FiUsers, FiBarChart2, FiAward, FiBookOpen, FiSettings, FiBell, FiX, FiPlay, FiUpload, FiFileText, FiClock, FiCheckCircle, FiAlertCircle, FiUsers as FiUsersIcon, FiChevronUp, FiChevronDown, FiMenu, FiFilm } from 'react-icons/fi';
+import { FiUsers, FiBarChart2, FiAward, FiBookOpen, FiSettings, FiBell, FiX, FiPlay, FiUpload, FiFileText, FiClock, FiCheckCircle, FiAlertCircle, FiUsers as FiUsersIcon, FiChevronUp, FiChevronDown, FiMenu, FiFilm, FiCreditCard } from 'react-icons/fi';
 import TeachersModal from '../components/TeachersModal';
 import ReelsViewer from '../components/ReelsViewer';
 import NajotLogo from '../assets/Najot.png';
@@ -79,18 +79,126 @@ export default function StudentDashboard() {
   const [reelsUploading, setReelsUploading] = useState(false);
   const [reelsUploadProgress, setReelsUploadProgress] = useState(0);
 
+  // 💳 PAYMENT tizimi state
+  const [paymentPlan, setPaymentPlan] = useState('MONTHLY');
+  const [paymentAmount, setPaymentAmount] = useState(7000);
+  const [paymentProvider, setPaymentProvider] = useState('click');
+  const [paymentStatus, setPaymentStatus] = useState(null); // null | 'PENDING' | 'ACTIVE' | 'PENDING_REVIEW' | 'REJECTED' | 'EXPIRED'
+  const [paymentData, setPaymentData] = useState(null);
+  const [receiptFile, setReceiptFile] = useState(null);
+  const [transactionId, setTransactionId] = useState('');
+  const [receiptUploading, setReceiptUploading] = useState(false);
+  const [receiptResult, setReceiptResult] = useState(null);
+  const [creatingPayment, setCreatingPayment] = useState(false);
+  const [paymentCreated, setPaymentCreated] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState(null);
+
   useEffect(() => {
     fetchMyGroups();
-    fetchCoins(); // Kumush tangalarni yuklash
-    fetchNotifications(); // Bildirishnomalarni yuklash
-    
-    // Har 30 sekundda yangi bildirishnomalarni tekshirish
-    const intervalId = setInterval(() => {
-      fetchNotifications();
-    }, 30000);
-    
+    fetchCoins();
+    fetchNotifications();
+    fetchPaymentStatus();
+    const intervalId = setInterval(() => { fetchNotifications(); }, 30000);
     return () => clearInterval(intervalId);
   }, []);
+
+  // 💳 Payment status yuklash
+  const fetchPaymentStatus = async () => {
+    try {
+      const res = await api.get('/subscription/status');  // ✅ To'g'ri endpoint
+      const data = res?.data?.data;
+      console.log('💳 Payment status data:', data);
+      if (data) {
+        setPaymentStatus(data.status);
+        setPaymentData(data);
+        if (data.receipt?.rejectionReason) setRejectionReason(data.receipt.rejectionReason);
+      }
+    } catch (err) { console.warn('💳 Payment status xato:', err?.response?.status, err?.response?.data); }
+  };
+
+  // 💳 Payment yaratish
+  const handleCreatePayment = async () => {
+    try {
+      setCreatingPayment(true);
+      const res = await api.post('/payments/create', {
+        plan: paymentPlan,
+        amount: Number(paymentAmount),
+        provider: paymentProvider,
+      });
+      setPaymentCreated(res?.data?.data?.payment);
+      toast.success("To'lov yaratildi! Chek rasmini yuklang.");
+      await fetchPaymentStatus();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "To'lov yaratishda xato");
+    } finally { setCreatingPayment(false); }
+  };
+
+  // 💳 Chek yuklash
+  const handleReceiptUpload = async () => {
+    if (!receiptFile) { toast.error('Chek rasmini tanlang (JPG, PNG, WEBP)'); return; }
+    if (!transactionId.trim() || transactionId.trim().length < 6) {
+      toast.error('Tranzaksiya ID ni kiriting (Click/Payme chekidagi raqam, kamida 6 ta belgi)');
+      return;
+    }
+    try {
+      setReceiptUploading(true);
+      toast.loading('AI chekni tekshirmoqda...', { id: 'ai-check', duration: 10000 });
+      
+      const formData = new FormData();
+      formData.append('receipt', receiptFile);
+      formData.append('transactionId', transactionId.trim());
+      const res = await api.post('/payments/receipt', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const data = res?.data?.data;
+      setReceiptResult(data);
+      
+      // ✅ AI tekshiruv tugadi toast'ni o'chirish
+      toast.dismiss('ai-check');
+      
+      if (data?.receipt?.verificationStatus === 'REJECTED') {
+        toast.error('❌ ' + (data?.receipt?.rejectionReason || 'Bu rasm to\'lov cheki emas. Haqiqiy bank chekini yuklang.'), {
+          duration: 8000,
+          icon: '🚫',
+          style: { background: '#fef2f2', color: '#991b1b', fontWeight: '600' },
+        });
+        setRejectionReason(data?.receipt?.rejectionReason);
+      } else if (data?.receipt?.verificationStatus === 'VERIFIED') {
+        // 🎉 Tarif sotib olindi!
+        const planName = paymentData?.plan === 'MONTHLY' ? 'Oylik' : 
+                        paymentData?.plan === 'YEARLY' ? 'Yillik' : 'Tarif';
+        toast.success(`🎉 ${planName} tarifni sotib oldingiz!`, {
+          duration: 8000,
+          icon: '✅',
+          style: {
+            background: '#10b981',
+            color: '#fff',
+            fontWeight: 'bold',
+            fontSize: '16px',
+          },
+        });
+        setTimeout(() => {
+          toast('Obuna faollashtirildi! Endi barcha xususiyatlardan foydalanishingiz mumkin! 🚀', {
+            duration: 6000,
+            icon: '🎓',
+          });
+        }, 1000);
+      } else if (data?.receipt?.verificationStatus === 'NEEDS_REVIEW') {
+        toast('⏳ Chek admin tekshiruviga yuborildi. Tez orada tasdiqlanadi.', {
+          duration: 6000,
+          icon: '🔍',
+        });
+      } else {
+        toast.success('Chek yuklandi! Tekshirilmoqda... ⏳', { duration: 4000 });
+      }
+      setReceiptFile(null);
+      setTransactionId('');
+      await fetchPaymentStatus();
+    } catch (err) {
+      toast.dismiss('ai-check');
+      toast.error(err?.response?.data?.message || 'Chek yuklashda xato');
+    } finally { setReceiptUploading(false); }
+  };
 
   const fetchMyGroups = async () => {
     try {
@@ -562,7 +670,7 @@ export default function StudentDashboard() {
   const navItems = [
     { name: "Guruhlarim", icon: <FiUsers size={18} /> },
     { name: "Reels", icon: <FiFilm size={18} /> },
-    { name: "Ko'rsatgichlarim", icon: <FiBarChart2 size={18} /> },
+    { name: "To'lov", icon: <FiCreditCard size={18} /> },
     { name: "Reyting", icon: <FiAward size={18} /> },
     { name: "Qo'shimcha darslar", icon: <FiBookOpen size={18} /> },
     { name: "Sozlamalar", icon: <FiSettings size={18} /> },
@@ -629,7 +737,7 @@ export default function StudentDashboard() {
 
       {/* ═══ CHAP SIDEBAR ═══ */}
       <div 
-        className={isMobileMenuOpen ? 'mobile-open' : ''}
+        className={`student-dashboard-sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`}
         style={{
         width:'200px', backgroundColor:'#fff', borderRight:'1px solid #e5e7eb',
         display:'flex', flexDirection:'column', position:'fixed',
@@ -710,13 +818,14 @@ export default function StudentDashboard() {
       </div>
 
       {/* ═══ ASOSIY KONTENT ═══ */}
-      <div style={{ flex:1, marginLeft:'200px', minHeight:'100vh' }}>
+      <div className="main-dashboard-content" style={{ flex:1, marginLeft:'200px', minHeight:'100vh' }}>
 
         {/* Top navbar */}
         <div style={{
           height:'56px', background:'transparent',
           display:'flex', alignItems:'center', justifyContent:'flex-end',
-          padding:'0 24px', gap:'12px'
+          padding:'0 16px', gap:'12px',
+          position:'sticky', top:0, zIndex:100,
         }}>
           {/* 🔔 Bildirishnomalar */}
           <div style={{ position:'relative' }}>
@@ -885,7 +994,174 @@ export default function StudentDashboard() {
         </div>
 
         {/* PAGE CONTENT */}
-        <div style={{ padding:'0 24px 32px' }}>
+        <div className="dashboard-page-content" style={{ padding:'0 24px 32px' }}>
+
+          {/* ═══ TO'LOV ═══ */}
+          {activeNav === "To'lov" && (
+            <div style={{ maxWidth: '800px' }}>
+              <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#1f2937', marginBottom: '24px', marginTop: 0 }}>
+                To'lov va Obuna
+              </h2>
+
+              {/* Status Banner */}
+              <div style={{
+                background: paymentStatus === 'ACTIVE' ? '#ecfdf5' : 
+                           paymentStatus === 'PENDING_REVIEW' ? '#fefce8' : 
+                           paymentStatus === 'REJECTED' ? '#fef2f2' : '#f3f4f6',
+                border: `1px solid ${paymentStatus === 'ACTIVE' ? '#10b981' : 
+                                      paymentStatus === 'PENDING_REVIEW' ? '#eab308' : 
+                                      paymentStatus === 'REJECTED' ? '#ef4444' : '#d1d5db'}`,
+                borderRadius: '12px', padding: '20px', marginBottom: '24px',
+                display: 'flex', alignItems: 'center', gap: '16px'
+              }}>
+                <div style={{ fontSize: '32px' }}>
+                  {paymentStatus === 'ACTIVE' ? '✅' : 
+                   paymentStatus === 'PENDING_REVIEW' ? '⏳' : 
+                   paymentStatus === 'REJECTED' ? '❌' : '💳'}
+                </div>
+                <div>
+                  <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', color: '#1f2937' }}>
+                    {paymentStatus === 'ACTIVE' ? 'Obuna faol' : 
+                     paymentStatus === 'PENDING_REVIEW' ? "Chek tekshirilmoqda" : 
+                     paymentStatus === 'REJECTED' ? "To'lov rad etildi" : "Obuna mavjud emas"}
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '14px', color: '#4b5563' }}>
+                    {paymentStatus === 'ACTIVE' ? `Sizning obunangiz ${new Date(paymentData?.subscription?.expiresAt).toLocaleDateString('uz-UZ')} gacha faol.` : 
+                     paymentStatus === 'PENDING_REVIEW' ? "Admin to'lovni tasdiqlashi kutilmoqda. Bu biroz vaqt olishi mumkin." : 
+                     paymentStatus === 'REJECTED' ? `Sabab: ${rejectionReason}` : "Platformadan to'liq foydalanish uchun to'lovni amalga oshiring."}
+                  </p>
+                </div>
+              </div>
+
+              {/* To'lov formasi (agar obuna yo'q bo'lsa yoki rad etilgan bo'lsa) */}
+              {(!paymentStatus || paymentStatus === 'NOT_PAID' || paymentStatus === 'REJECTED' || paymentStatus === 'EXPIRED') && (
+                <div style={{ background: '#fff', borderRadius: '12px', padding: '32px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
+                  <h3 style={{ margin: '0 0 20px', fontSize: '18px', fontWeight: 600 }}>Tarifni tanlang</h3>
+                  
+                  <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
+                    <div onClick={() => { setPaymentPlan('MONTHLY'); setPaymentAmount(7000); }}
+                         style={{ flex: 1, padding: '20px', border: `2px solid ${paymentPlan === 'MONTHLY' ? '#7c3aed' : '#e5e7eb'}`, borderRadius: '12px', cursor: 'pointer', background: paymentPlan === 'MONTHLY' ? '#f5f3ff' : '#fff' }}>
+                      <h4 style={{ margin: '0 0 8px', fontSize: '16px' }}>Oylik obuna</h4>
+                      <p style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#7c3aed' }}>7 000 so'm</p>
+                      <p style={{ margin: '8px 0 0', fontSize: '13px', color: '#6b7280' }}>(5 000 - 10 000 so'm oralig'ida ixtiyoriy summani kiriting)</p>
+                    </div>
+                    
+                    <div onClick={() => { setPaymentPlan('YEARLY'); setPaymentAmount(50000); }}
+                         style={{ flex: 1, padding: '20px', border: `2px solid ${paymentPlan === 'YEARLY' ? '#7c3aed' : '#e5e7eb'}`, borderRadius: '12px', cursor: 'pointer', background: paymentPlan === 'YEARLY' ? '#f5f3ff' : '#fff' }}>
+                      <h4 style={{ margin: '0 0 8px', fontSize: '16px' }}>Yillik obuna</h4>
+                      <p style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#7c3aed' }}>50 000 so'm</p>
+                      <p style={{ margin: '8px 0 0', fontSize: '13px', color: '#6b7280' }}>1 yil uchun barcha imkoniyatlar</p>
+                    </div>
+                  </div>
+
+                  {paymentPlan === 'MONTHLY' && (
+                    <div style={{ marginBottom: '24px' }}>
+                      <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>O'zingiz xohlagan summani kiriting (5000 dan 10000 gacha):</label>
+                      <input type="number" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)}
+                             style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '16px' }} />
+                    </div>
+                  )}
+
+                  <div style={{ marginBottom: '24px' }}>
+                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>To'lov usuli:</label>
+                    <select value={paymentProvider} onChange={(e) => setPaymentProvider(e.target.value)}
+                            style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '16px' }}>
+                      <option value="click">Click</option>
+                      <option value="payme">Payme</option>
+                      <option value="paynet">Paynet</option>
+                      <option value="card">Bank kartasi (Karta raqami orqali)</option>
+                    </select>
+                  </div>
+
+                  {!paymentCreated ? (
+                    <button onClick={handleCreatePayment} disabled={creatingPayment}
+                            style={{ width: '100%', padding: '14px', borderRadius: '8px', background: '#7c3aed', color: '#fff', border: 'none', fontSize: '16px', fontWeight: 600, cursor: 'pointer' }}>
+                      {creatingPayment ? 'Kuting...' : "Davom etish"}
+                    </button>
+                  ) : (
+                    <div style={{ padding: '24px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                      <h4 style={{ margin: '0 0 16px', color: '#1e293b', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        💳 Karta ma'lumotlari:
+                      </h4>
+                      <p style={{ margin: '0 0 12px', fontSize: '15px', color: '#475569', lineHeight: '1.5' }}>
+                        Iltimos, tanlagan ilovangiz orqali quyidagi hisob raqamiga belgilangan <strong>{paymentCreated.amount} so'm</strong> summani o'tkazing va to'lov muvaffaqiyatli amalga oshirilganligini tasdiqlovchi chek rasmini (skrinshotni) yuklang.
+                      </p>
+                      <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '20px' }}>
+                        <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px' }}>Karta raqami:</div>
+                        <div style={{ fontFamily: 'monospace', fontSize: '22px', fontWeight: 700, letterSpacing: '2px', color: '#0f172a', marginBottom: '12px' }}>
+                          9860 1234 5678 9012
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px' }}>Karta egasi (Qabul qiluvchi):</div>
+                        <div style={{ fontSize: '16px', fontWeight: 600, color: '#0f172a' }}>
+                          Najot Ta'lim (MCHJ)
+                        </div>
+                      </div>
+                      
+                      <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>
+                        <h4 style={{ margin: '0 0 12px', color: '#1e293b', fontSize: '16px' }}>🧾 To'lov chekini yuklang:</h4>
+                        
+                        {/* Tranzaksiya ID */}
+                        <div style={{ marginBottom: '16px' }}>
+                          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600, color: '#374151' }}>
+                            Tranzaksiya ID (Chek raqami) *
+                          </label>
+                          <input
+                            type="text"
+                            value={transactionId}
+                            onChange={(e) => setTransactionId(e.target.value)}
+                            placeholder="Masalan: 123456789 yoki TX-ABC123"
+                            style={{
+                              width: '100%',
+                              padding: '12px 16px',
+                              borderRadius: '8px',
+                              border: '1px solid #d1d5db',
+                              fontSize: '15px',
+                              fontFamily: 'monospace',
+                              boxSizing: 'border-box'
+                            }}
+                          />
+                          <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#6b7280' }}>
+                            Click/Payme chekidagi tranzaksiya raqamini kiriting
+                          </p>
+                        </div>
+
+                        {/* Chek rasmi */}
+                        <div style={{ marginBottom: '16px' }}>
+                          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600, color: '#374151' }}>
+                            Chek rasmi *
+                          </label>
+                          <input type="file" accept="image/jpeg, image/png, image/webp" 
+                                 onChange={(e) => setReceiptFile(e.target.files[0])}
+                                 style={{ display: 'block', width: '100%', padding: '10px', background: '#fff', border: '1px dashed #cbd5e1', borderRadius: '8px' }} />
+                          {receiptFile && (
+                            <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#10b981' }}>
+                              ✓ {receiptFile.name} ({(receiptFile.size / 1024).toFixed(1)} KB)
+                            </p>
+                          )}
+                        </div>
+                        
+                        <button onClick={handleReceiptUpload} disabled={receiptUploading || !receiptFile || !transactionId.trim()}
+                                style={{ 
+                                  width: '100%', padding: '14px', borderRadius: '8px', 
+                                  background: receiptUploading ? '#f59e0b' : (receiptFile && transactionId.trim() ? '#10b981' : '#9ca3af'), 
+                                  color: '#fff', border: 'none', fontSize: '16px', fontWeight: 600, 
+                                  cursor: (receiptFile && transactionId.trim() && !receiptUploading) ? 'pointer' : 'not-allowed',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                  transition: 'background 0.2s'
+                                }}>
+                          {receiptUploading ? (
+                            <>⏳ AI tizimi tekshirmoqda...</>
+                          ) : (
+                            <>Chekni yuborish</>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ═══ SOZLAMALAR ═══ */}
           {activeNav === 'Sozlamalar' && (
@@ -1787,6 +2063,61 @@ export default function StudentDashboard() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* 💳 AI Tekshiruv Loading Overlay */}
+      {(receiptUploading || creatingPayment) && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          zIndex: 99999,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '20px',
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: '20px',
+            padding: '40px 48px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '16px',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.4)',
+            maxWidth: '320px',
+            textAlign: 'center',
+          }}>
+            {/* Spinner */}
+            <div style={{
+              width: '60px',
+              height: '60px',
+              border: '5px solid #e5e7eb',
+              borderTop: '5px solid #7c3aed',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+            }} />
+            <div style={{ fontSize: '36px' }}>{receiptUploading ? '🤖' : '💳'}</div>
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#1f2937' }}>
+              {receiptUploading ? 'AI tekshirmoqda...' : "To'lov yaratilmoqda..."}
+            </h3>
+            <p style={{ margin: 0, fontSize: '14px', color: '#6b7280', lineHeight: '1.5' }}>
+              {receiptUploading
+                ? "Chekingiz AI tizimi tomonidan\ntalil qilinmoqda. Kuting..."
+                : "Iltimos, kuting..."}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* CSS animation */}
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }

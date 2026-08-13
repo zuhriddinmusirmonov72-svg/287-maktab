@@ -4,6 +4,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { mkdirSync } from 'fs';
 import swaggerUi from 'swagger-ui-express';
+import 'dotenv/config';
 
 import { initDB } from './database.js';
 import { swaggerDoc } from './swagger.js';
@@ -23,12 +24,13 @@ import filesRoutes      from './routes/files.js';
 import coinsRoutes      from './routes/coins.js';
 import notificationsRoutes from './routes/notifications.js';
 import reelsRoutes      from './routes/reels.js';
+import paymentsRoutes   from './routes/payments.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3002;
 
 // Papkalarni yaratish
-['uploads/photos', 'uploads/videos', 'uploads/homeworks', 'data'].forEach(dir => {
+['uploads/photos', 'uploads/videos', 'uploads/homeworks', 'uploads/receipts', 'data'].forEach(dir => {
   mkdirSync(join(__dirname, '..', dir), { recursive: true });
 });
 
@@ -106,6 +108,8 @@ api.use('/files',         filesRoutes);
 api.use('/coins',         coinsRoutes);
 api.use('/notifications', notificationsRoutes);
 api.use('/reels',         reelsRoutes);
+api.use('/payments',      paymentsRoutes);  // ✅ Yangi: Payment tizimi
+api.use('/subscription',  paymentsRoutes);  // /subscription ham payments route dan
 
 // Homework ikki prefix bilan:
 //   /homework/all, /homework/:groupId, /homework/:id  → prefix: /homework

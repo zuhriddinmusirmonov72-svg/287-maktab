@@ -1239,10 +1239,10 @@ const GroupDetails = () => {
   const firstMonth = schedules[0];
   const restMonths = schedules.slice(1);
 
-  const renderMonthDays = (month) => (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+  // ✅ Desktop versiya - Barcha kunlar
+  const renderMonthDaysDesktop = (month) => (
+    <div className="hide-on-mobile" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
       {month.days.map((d, idx) => {
-        // d.date — to'g'ridan-to'g'ri ISO sana (YYYY-MM-DD) yoki eski format
         const isoDate = d.date
           ? String(d.date).slice(0, 10)
           : scheduleDayToIso(d, new Date().getFullYear(), month.monthNum);
@@ -1251,7 +1251,6 @@ const GroupDetails = () => {
         const { canTake } = isoDate ? canTakeAttendance(isoDate, completedDatesSet) : { canTake: false };
         const isClickable = Boolean(isoDate) && (canTake || done);
 
-        // Sana raqami va hafta kuni
         const dateObj = isoDate ? new Date(isoDate + 'T00:00:00') : null;
         const dayNum  = dateObj ? dateObj.getDate() : (d.day || d.dayNum || idx + 1);
         const WEEK_SHORT = ['Ya','Du','Se','Ch','Pa','Ju','Sh'];
@@ -1301,15 +1300,12 @@ const GroupDetails = () => {
               e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
-            {/* Hafta kuni */}
             <span style={{ fontSize: '10px', color: done ? '#16a34a' : '#6b7280', fontWeight: 500 }}>
               {weekLabel || MONTH_SHORT[d.month] || d.month?.slice(0, 3) || ''}
             </span>
-            {/* Kun raqami */}
             <strong style={{ fontSize: '20px', color: done ? '#16a34a' : '#111827', fontWeight: 700, lineHeight: 1 }}>
               {dayNum || d.day}
             </strong>
-            {/* Vaqt */}
             {timeLabel && (
               <span style={{ fontSize: '9px', color: '#9ca3af', lineHeight: 1 }}>{timeLabel}</span>
             )}
@@ -1321,6 +1317,102 @@ const GroupDetails = () => {
       })}
     </div>
   );
+
+  // ✅ Mobile versiya - Faqat keyingi 8 kun, 2x4 grid
+  const renderMonthDaysMobile = (month) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const upcomingDays = month.days
+      .map((d, idx) => {
+        const isoDate = d.date
+          ? String(d.date).slice(0, 10)
+          : scheduleDayToIso(d, new Date().getFullYear(), month.monthNum);
+        
+        const dateObj = isoDate ? new Date(isoDate + 'T00:00:00') : null;
+        return { ...d, isoDate, dateObj, originalIdx: idx };
+      })
+      .filter(d => d.dateObj && d.dateObj >= today)
+      .slice(0, 8);
+
+    return (
+      <div className="show-on-mobile" style={{ 
+        display: 'none',
+        gridTemplateColumns: 'repeat(4, 1fr)',
+        gap: '12px',
+        maxWidth: '600px',
+      }}>
+        {upcomingDays.map((d) => {
+          const done = d.isoDate && completedDatesSet.has(d.isoDate);
+          const { canTake } = d.isoDate ? canTakeAttendance(d.isoDate, completedDatesSet) : { canTake: false };
+          const isClickable = Boolean(d.isoDate) && (canTake || done);
+
+          const dayNum  = d.dateObj ? d.dateObj.getDate() : (d.day || d.dayNum || d.originalIdx + 1);
+          const WEEK_SHORT = ['Ya','Du','Se','Ch','Pa','Ju','Sh'];
+          const weekLabel = d.dateObj ? WEEK_SHORT[d.dateObj.getDay()] : '';
+          const timeLabel = d.start_time || '';
+
+          return (
+            <div
+              key={d.originalIdx}
+              role={isClickable ? 'button' : undefined}
+              tabIndex={isClickable ? 0 : undefined}
+              onClick={() => { if (isClickable) navigate(`${basePath}/${id}/lesson?date=${d.isoDate}`); }}
+              onKeyDown={(e) => { if (isClickable && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); navigate(`${basePath}/${id}/lesson?date=${d.isoDate}`); } }}
+              title={
+                done
+                  ? `${d.isoDate} — tugallangan dars (ko'rish)`
+                  : isClickable
+                    ? `${d.isoDate} — davomat kiritish`
+                    : (d.isoDate ? `${d.isoDate} — hali sana kelmagan` : '')
+              }
+              style={{
+                width: '100%',
+                minHeight: '90px',
+                border: `2px solid ${done ? '#86efac' : isClickable ? '#93c5fd' : '#e5e7eb'}`,
+                borderRadius: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '4px',
+                background: done ? '#f0fdf4' : isClickable ? '#eff6ff' : '#fff',
+                cursor: isClickable ? 'pointer' : 'default',
+                transition: 'all 0.18s ease',
+                boxShadow: done ? '0 2px 8px rgba(34,197,94,0.15)' : '0 1px 3px rgba(0,0,0,0.05)',
+                opacity: isClickable ? 1 : 0.5,
+              }}
+              onMouseEnter={(e) => {
+                if (isClickable && !done) {
+                  e.currentTarget.style.borderColor = '#7c3aed';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(124,58,237,0.2)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = done ? '#86efac' : isClickable ? '#93c5fd' : '#e5e7eb';
+                e.currentTarget.style.boxShadow = done ? '0 2px 8px rgba(34,197,94,0.15)' : '0 1px 3px rgba(0,0,0,0.05)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              <span style={{ fontSize: '12px', color: done ? '#16a34a' : '#6b7280', fontWeight: 600 }}>
+                {weekLabel || MONTH_SHORT[d.month] || d.month?.slice(0, 3) || ''}
+              </span>
+              <strong style={{ fontSize: '24px', color: done ? '#16a34a' : '#111827', fontWeight: 700, lineHeight: 1 }}>
+                {dayNum || d.day}
+              </strong>
+              {timeLabel && (
+                <span style={{ fontSize: '11px', color: '#9ca3af', lineHeight: 1 }}>{timeLabel}</span>
+              )}
+              {done && (
+                <span style={{ fontSize: '16px', color: '#16a34a', lineHeight: 1 }}>✓</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   return (
     <>
@@ -1878,6 +1970,7 @@ const GroupDetails = () => {
                   borderBottom: activeTab === tab.id ? '2px solid #7c3aed' : '2px solid transparent',
                   color: activeTab === tab.id ? '#7c3aed' : '#6b7280',
                 }}
+                className={tab.id === 'davomat' ? 'hide-on-mobile' : ''}
               >
                 {tab.label}
               </button>
@@ -1886,7 +1979,8 @@ const GroupDetails = () => {
 
           {activeTab === 'malumotlar' && (
             <>
-              <div style={{
+              {/* Desktop: Mentorlar va Parametrlar */}
+              <div className="hide-on-mobile" style={{
                 display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
                 gap: '24px', marginBottom: '24px',
               }}>
@@ -2047,13 +2141,14 @@ const GroupDetails = () => {
                             marginBottom: '16px', paddingBottom: '8px',
                             borderBottom: '2px solid #e5e7eb',
                           }}>{firstMonth.title}</h3>
-                          {renderMonthDays(firstMonth)}
+                          {renderMonthDaysDesktop(firstMonth)}
+                          {renderMonthDaysMobile(firstMonth)}
                         </div>
                       )}
 
                       {restMonths.length > 0 && (
                         <>
-                          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '32px' }}>
+                          <div className="hide-on-mobile" style={{ display: 'flex', justifyContent: 'center', marginBottom: '32px' }}>
                             <button
                               onClick={() => setShowAllMonths(!showAllMonths)}
                               style={{
@@ -2085,7 +2180,8 @@ const GroupDetails = () => {
                                 marginBottom: '16px', paddingBottom: '8px',
                                 borderBottom: '2px solid #e5e7eb',
                               }}>{month.title}</h3>
-                              {renderMonthDays(month)}
+                              {renderMonthDaysDesktop(month)}
+                              {renderMonthDaysMobile(month)}
                             </div>
                           ))}
                         </>

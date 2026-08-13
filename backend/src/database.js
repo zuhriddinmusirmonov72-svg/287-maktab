@@ -25,6 +25,10 @@ export const collections = {
   files:           make('files'),
   notifications:   make('notifications'),
   otpCodes:        make('otp_codes'),
+  // 💳 Payment tizimi
+  payments:        make('payments'),
+  receipts:        make('receipts'),
+  subscriptions:   make('subscriptions'),
 };
 
 // Promisify helpers

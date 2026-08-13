@@ -27,6 +27,13 @@ function resolveApiBaseUrl() {
 
 export const API_BASE_URL = resolveApiBaseUrl();
 
+// 🐛 Debug: API URL ni console'ga chiqarish
+console.log('🔧 API Configuration:', {
+  isDev: import.meta.env.DEV,
+  VITE_API_URL: import.meta.env.VITE_API_URL,
+  resolvedURL: API_BASE_URL,
+});
+
 const BASE_URL = API_BASE_URL;
 
 // =============================================
@@ -782,6 +789,25 @@ export const EXAM_RESULT_STATUSES = [
 
 /** Guruh imtihonlari — frontend local API */
 export const examAPI = localExamAPI;
+
+// =============================================
+// 💳 PAYMENTS — /api/v1/payments
+// =============================================
+// 💳 PAYMENTS — /api/v1/payments
+// =============================================
+export const paymentsAPI = {
+  create: (data) => api.post('/payments/create', data),
+  uploadReceipt: (formData) => apiForm.post('/payments/receipt', formData),
+  getStatus: () => api.get('/payments/subscription/status'), // ✅ To'g'ri endpoint
+  getHistory: () => api.get('/payments/history'),
+};
+
+export const adminPaymentsAPI = {
+  getAll: () => api.get('/payments/admin/all'),
+  getOne: (id) => api.get(`/payments/admin/${id}`),
+  verify: (id) => api.post(`/payments/admin/${id}/verify`),
+  reject: (id, reason) => api.post(`/payments/admin/${id}/reject`, { reason }),
+};
 
 // =============================================
 // 📁 FILES — Swagger "Files" (faqat 2 ta endpoint)

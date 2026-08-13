@@ -26,6 +26,7 @@ import Rooms from './pages/Rooms';
 import Students from './pages/Students';
 import Teachers from './pages/Teachers';
 import Gifts from './pages/Gifts';
+import Payments from './pages/Payments';
 import Management from './pages/Management';
 import Profile from './pages/Profile';
 
@@ -46,6 +47,7 @@ import TeacherHomeworkAccepted from "./pages/SUPER ADMIN 2/TeacherHomeworkAccept
 import TeacherGifts from "./pages/SUPER ADMIN 2/TeacherGifts";
 import TeacherLessons from "./pages/SUPER ADMIN 2/TeacherLessons";
 import TeacherLessonDetail from "./pages/SUPER ADMIN 2/TeacherLessonDetail";
+import AdminPaymentReview from "./pages/SUPER ADMIN 2/AdminPaymentReview";
 
 function App() {
   return (
@@ -85,6 +87,8 @@ function App() {
               <Route path="/super-admin-2/homework-results" element={<TeacherHomeworkAccepted />} />
               <Route path="/super-admin-2/management" element={<TeacherManagement />} />
               <Route path="/super-admin-2/profile" element={<TeacherProfile />} />
+              <Route path="/super-admin-2/payments-review" element={<AdminPaymentReview />} />
+              <Route path="/payments" element={<Payments />} />
             </Route>
 
             {/* DEFAULT USER ROUTES */}
@@ -105,6 +109,7 @@ function App() {
               <Route path="/students" element={<Students />} />
               <Route path="/teachers" element={<Teachers />} />
               <Route path="/gifts" element={<Gifts />} />
+              <Route path="/payments" element={<Payments />} />
               <Route path="/homework" element={<HomeworkAll />} />
               <Route path="/homework-results" element={<HomeworkAccepted />} />
               <Route path="/management" element={<Management />} />
