@@ -4,28 +4,24 @@ import { localExamAPI } from "./examStore";
 // =============================================
 // 🔧 BASE URL
 // Dev: Vite proxy (/api/v1) — brauzer CORS xatosiz ulanadi
-// Prod: to'g'ridan-to'g'ri backend yoki VITE_API_URL
+// Prod: to'g'ridan-to'g'ri backend URL
 // =============================================
-export const BACKEND_API_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:3001/api/v1";
-
+const PRODUCTION_BACKEND = "https://two87-maktab-backend.onrender.com/api/v1";
 const DEV_PROXY_BASE = "/api/v1";
 
 function resolveApiBaseUrl() {
-  const envUrl = import.meta.env.VITE_API_URL?.trim();
-  // Dev: har doim Vite proxy — to'g'ridan-to'g'ri URL CORS bloklaydi
+  // Development mode: Vite proxy
   if (import.meta.env.DEV) {
-    // Allow forcing direct backend calls in dev for quick debugging.
-    // Set VITE_FORCE_DIRECT_API=true in your .env to bypass the Vite proxy.
-    if (String(import.meta.env.VITE_FORCE_DIRECT_API).toLowerCase() === 'true') {
-      return envUrl || BACKEND_API_URL;
-    }
-    return envUrl?.startsWith("/") ? envUrl : DEV_PROXY_BASE;
+    return DEV_PROXY_BASE;
   }
-  return envUrl || BACKEND_API_URL;
+  
+  // Production mode: Environment variable yoki default production URL
+  const envUrl = import.meta.env.VITE_API_URL?.trim();
+  return envUrl || PRODUCTION_BACKEND;
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();
+export const BACKEND_API_URL = API_BASE_URL;
 
 // 🐛 Debug: API URL ni console'ga chiqarish
 console.log('🔧 API Configuration:', {
