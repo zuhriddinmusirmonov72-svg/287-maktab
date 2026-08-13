@@ -1686,16 +1686,35 @@ input[type="range"]::-moz-range-thumb:active {
   .main-dashboard-content {
     margin-left: 0 !important;
     width: 100% !important;
+    padding: 0 16px !important;
   }
 
   /* PAGE CONTENT padding mobilda */
   .dashboard-page-content {
-    padding: 0 12px 24px !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    max-width: 100% !important;
   }
 
   /* Barcha child div lar mobilda to'liq kenglik */
   .dashboard-page-content > div {
     max-width: 100% !important;
+    margin: 0 auto !important;
+  }
+  
+  /* Video player mobilda centered */
+  .main-dashboard-content video,
+  .main-dashboard-content iframe {
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    display: block !important;
+  }
+  
+  /* Lessons list centered */
+  .main-dashboard-content > div > div {
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
   }
 
   /* Overlay for mobile menu */

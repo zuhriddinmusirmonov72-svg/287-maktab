@@ -818,7 +818,16 @@ export default function StudentDashboard() {
       </div>
 
       {/* ═══ ASOSIY KONTENT ═══ */}
-      <div className="main-dashboard-content" style={{ flex:1, marginLeft:'200px', minHeight:'100vh' }}>
+      <div 
+        className="main-dashboard-content" 
+        style={{ 
+          flex: 1, 
+          marginLeft: window.innerWidth <= 768 ? '0' : '200px', 
+          minHeight: '100vh',
+          width: window.innerWidth <= 768 ? '100%' : 'calc(100% - 200px)',
+          padding: window.innerWidth <= 768 ? '0 16px' : '0 24px'
+        }}
+      >
 
         {/* Top navbar */}
         <div style={{
@@ -1514,10 +1523,22 @@ export default function StudentDashboard() {
           )}
 
           {selectedLesson && (
-            <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
+            <div style={{ 
+              display: 'flex', 
+              gap: '20px', 
+              alignItems: 'flex-start',
+              flexDirection: window.innerWidth <= 768 ? 'column' : 'row',
+              width: '100%',
+              maxWidth: window.innerWidth <= 768 ? '100%' : 'none',
+              margin: '0 auto'
+            }}>
 
               {/* ===== LEFT PANEL ===== */}
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ 
+                flex: 1, 
+                minWidth: 0,
+                width: window.innerWidth <= 768 ? '100%' : 'auto'
+              }}>
 
                 {/* Video player */}
                 {loadingVideos ? (
@@ -1805,7 +1826,10 @@ export default function StudentDashboard() {
               </div>
 
               {/* ===== RIGHT PANEL — Accordion Lessons ===== */}
-              <div style={{ width: '320px', flexShrink: 0 }}>
+              <div style={{ 
+                width: window.innerWidth <= 768 ? '100%' : '320px', 
+                flexShrink: 0 
+              }}>
                 <style>
                   {`
                     .lessons-scrollbar::-webkit-scrollbar {
