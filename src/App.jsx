@@ -29,6 +29,7 @@ import Gifts from './pages/Gifts';
 import Payments from './pages/Payments';
 import Management from './pages/Management';
 import Profile from './pages/Profile';
+import TelegramGroups from './pages/TelegramGroups';
 
 // SUPER ADMIN 2 (TEACHER)
 import TeacherDashboard from "./pages/SUPER ADMIN 2/TeacherDashboard";
@@ -89,6 +90,7 @@ function App() {
               <Route path="/super-admin-2/profile" element={<TeacherProfile />} />
               <Route path="/super-admin-2/payments-review" element={<AdminPaymentReview />} />
               <Route path="/payments" element={<Payments />} />
+              <Route path="/telegram" element={<TelegramGroups />} />
             </Route>
 
             {/* DEFAULT USER ROUTES */}
@@ -114,6 +116,7 @@ function App() {
               <Route path="/homework-results" element={<HomeworkAccepted />} />
               <Route path="/management" element={<Management />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/telegram" element={<TelegramGroups />} />
             </Route>
 
           </Routes>

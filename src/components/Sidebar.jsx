@@ -1,6 +1,6 @@
 import { useState, useContext } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { FaHome, FaUsers, FaUserGraduate, FaGift, FaCog, FaBell, FaChevronLeft, FaBook, FaDoorOpen, FaUserTie, FaCoins, FaPaperPlane, FaGem, FaSignOutAlt, FaUser, FaBars, FaCheckDouble } from 'react-icons/fa';
+import { FaUsers, FaUserGraduate, FaCog, FaBell, FaChevronLeft, FaBook, FaDoorOpen, FaUserTie, FaCoins, FaPaperPlane, FaGem, FaSignOutAlt, FaUser, FaBars, FaCheckDouble, FaTelegram } from 'react-icons/fa';
 import NajotLogo from '../assets/Najot.png';
 import { AppContext } from '../context/AppContext';
 
@@ -26,6 +26,7 @@ const Sidebar = ({ isOpen, onToggle }) => {
     ...(!isTeacher ? [{ name: t.teachers, path: '/teachers',  icon: <FaUserGraduate size={18} /> }] : []),
     { name: t.groups,   path: isTeacher ? '/super-admin-2/groups' : '/groups',    icon: <FaUsers size={18} /> },
     { name: t.students, path: isTeacher ? '/super-admin-2/students' : '/students',  icon: <FaGem size={18} /> },
+    { name: "Telegram",    path: '/telegram',     icon: <FaTelegram size={18} /> }, // ✅ Telegram chat
     { name: "To'lov qilganlar",    path: '/payments',     icon: <FaCoins size={18} /> }, // ✅ Barcha rollar uchun
   ];
 
