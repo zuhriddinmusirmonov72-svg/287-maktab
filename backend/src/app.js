@@ -6,25 +6,68 @@ import { mkdirSync } from 'fs';
 import swaggerUi from 'swagger-ui-express';
 import 'dotenv/config';
 
-import { initDB } from './database.js';
+// =============================================
+// 🗄️ DATABASE - PostgreSQL yoki NeDB
+// =============================================
+const USE_POSTGRES = process.env.DATABASE_URL ? true : false;
+
+if (USE_POSTGRES) {
+  console.log('📊 Using PostgreSQL database');
+  const { initPostgres } = await import('./db-postgres.js');
+  await initPostgres();
+} else {
+  console.log('📦 Using NeDB (file-based) database');
+  const { initDB } = await import('./database.js');
+  await initDB();
+}
+
 import { swaggerDoc } from './swagger.js';
 
-import authRoutes       from './routes/auth.js';
-import usersRoutes      from './routes/users.js';
-import studentsRoutes   from './routes/students.js';
-import teachersRoutes   from './routes/teachers.js';
-import coursesRoutes    from './routes/courses.js';
-import roomsRoutes      from './routes/rooms.js';
-import groupsRoutes     from './routes/groups.js';
-import studentGroupRoutes from './routes/studentGroup.js';
-import lessonsRoutes    from './routes/lessons.js';
-import attendanceRoutes from './routes/attendance.js';
-import homeworkRoutes   from './routes/homework.js';
-import filesRoutes      from './routes/files.js';
-import coinsRoutes      from './routes/coins.js';
-import notificationsRoutes from './routes/notifications.js';
-import reelsRoutes      from './routes/reels.js';
-import paymentsRoutes   from './routes/payments.js';
+// =============================================
+// 📡 ROUTES - PostgreSQL yoki NeDB
+// =============================================
+let authRoutes, usersRoutes, studentsRoutes, teachersRoutes, coursesRoutes;
+let roomsRoutes, groupsRoutes, studentGroupRoutes, lessonsRoutes, attendanceRoutes;
+let homeworkRoutes, filesRoutes, coinsRoutes, notificationsRoutes, reelsRoutes, paymentsRoutes;
+
+if (USE_POSTGRES) {
+  // PostgreSQL routes
+  authRoutes = (await import('./routes/auth-postgres.js')).default;
+  // Boshqa route'lar hozircha NeDB'dan (keyinchalik migration)
+  usersRoutes = (await import('./routes/users.js')).default;
+  studentsRoutes = (await import('./routes/students.js')).default;
+  teachersRoutes = (await import('./routes/teachers.js')).default;
+  coursesRoutes = (await import('./routes/courses.js')).default;
+  roomsRoutes = (await import('./routes/rooms.js')).default;
+  groupsRoutes = (await import('./routes/groups.js')).default;
+  studentGroupRoutes = (await import('./routes/studentGroup.js')).default;
+  lessonsRoutes = (await import('./routes/lessons.js')).default;
+  attendanceRoutes = (await import('./routes/attendance.js')).default;
+  homeworkRoutes = (await import('./routes/homework.js')).default;
+  filesRoutes = (await import('./routes/files.js')).default;
+  coinsRoutes = (await import('./routes/coins.js')).default;
+  notificationsRoutes = (await import('./routes/notifications.js')).default;
+  reelsRoutes = (await import('./routes/reels.js')).default;
+  paymentsRoutes = (await import('./routes/payments.js')).default;
+} else {
+  // NeDB routes
+  authRoutes = (await import('./routes/auth.js')).default;
+  usersRoutes = (await import('./routes/users.js')).default;
+  studentsRoutes = (await import('./routes/students.js')).default;
+  teachersRoutes = (await import('./routes/teachers.js')).default;
+  coursesRoutes = (await import('./routes/courses.js')).default;
+  roomsRoutes = (await import('./routes/rooms.js')).default;
+  groupsRoutes = (await import('./routes/groups.js')).default;
+  studentGroupRoutes = (await import('./routes/studentGroup.js')).default;
+  lessonsRoutes = (await import('./routes/lessons.js')).default;
+  attendanceRoutes = (await import('./routes/attendance.js')).default;
+  homeworkRoutes = (await import('./routes/homework.js')).default;
+  filesRoutes = (await import('./routes/files.js')).default;
+  coinsRoutes = (await import('./routes/coins.js')).default;
+  notificationsRoutes = (await import('./routes/notifications.js')).default;
+  reelsRoutes = (await import('./routes/reels.js')).default;
+  paymentsRoutes = (await import('./routes/payments.js')).default;
+}
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3002;
@@ -119,6 +162,15 @@ api.use('/homework', homeworkRoutes);
 // group/ prefiksli endpointlar uchun alohida router
 import groupHomeworkRouter from './routes/groupHomework.js';
 api.use('/', groupHomeworkRouter);
+
+// ===== TELEGRAM-STYLE CHAT ROUTES (PostgreSQL only) =====
+if (USE_POSTGRES) {
+  const chatGroupsRoutes = (await import('./routes/chat-groups.js')).default;
+  const chatMessagesRoutes = (await import('./routes/chat-messages.js')).default;
+  api.use('/chat/groups', chatGroupsRoutes);
+  api.use('/chat/messages', chatMessagesRoutes);
+  console.log('✅ Chat routes loaded (PostgreSQL)');
+}
 
 app.use('/api/v1', api);
 
