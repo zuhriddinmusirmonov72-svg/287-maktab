@@ -52,6 +52,18 @@ router.post('/login', async (req, res) => {
       { expiresIn: '30d' }
     );
 
+    // ✅ Foydalanuvchini default chat guruhiga qo'shish (ID=1)
+    try {
+      await query(`
+        INSERT INTO chat_group_members (chat_group_id, user_id, role)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (chat_group_id, user_id) DO NOTHING
+      `, [1, user.id, 'member']);
+    } catch (chatErr) {
+      console.warn('Chat guruhiga qo\'shishda xato:', chatErr.message);
+      // Ignore error - chat is not critical for login
+    }
+
     res.json({ 
       success: true, 
       data: { 

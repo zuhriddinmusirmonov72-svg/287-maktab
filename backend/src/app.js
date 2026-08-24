@@ -167,8 +167,8 @@ api.use('/', groupHomeworkRouter);
 if (USE_POSTGRES) {
   const chatGroupsRoutes = (await import('./routes/chat-groups.js')).default;
   const chatMessagesRoutes = (await import('./routes/chat-messages.js')).default;
-  api.use('/chat/groups', chatGroupsRoutes);
-  api.use('/chat/messages', chatMessagesRoutes);
+  api.use('/chat-groups', chatGroupsRoutes);
+  api.use('/chat-messages', chatMessagesRoutes);
   console.log('✅ Chat routes loaded (PostgreSQL)');
 }
 

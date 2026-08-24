@@ -414,9 +414,28 @@ export async function initPostgres() {
       console.log('✅ SUPER ADMIN created: 975661099 / Mohidil');
     }
 
+    // ═══ DEFAULT CHAT GROUP SEED ═══
+    const defaultChatCheck = await client.query(
+      'SELECT * FROM chat_groups WHERE id = $1',
+      [1]
+    );
+
+    if (defaultChatCheck.rows.length === 0) {
+      await client.query(
+        `INSERT INTO chat_groups (id, name, description, type, is_active) 
+         VALUES ($1, $2, $3, $4, $5)`,
+        [1, '287-Maktab Umumiy Chat', 'Barcha o\'quvchi va o\'qituvchilar uchun umumiy chat', 'group', true]
+      );
+      console.log('✅ Default chat group created: 287-Maktab Umumiy Chat');
+      
+      // Reset sequence to avoid ID conflicts
+      await client.query(`SELECT setval('chat_groups_id_seq', (SELECT MAX(id) FROM chat_groups))`);
+    }
+
     console.log('');
     console.log('🔐 ═══════════════════════════════════════════');
     console.log('👑 SUPER ADMIN: 975661099 / Mohidil');
+    console.log('💬 DEFAULT CHAT: ID=1 (287-Maktab Umumiy Chat)');
     console.log('🔐 ═══════════════════════════════════════════');
     console.log('');
 
