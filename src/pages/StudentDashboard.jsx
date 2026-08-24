@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { studentsAPI, lessonsAPI, filesAPI, homeworkAPI, loadVideoForPlayback, coinsAPI, notificationsAPI, api, reelsAPI } from '../api/api';
-import { FiUsers, FiBarChart2, FiAward, FiBookOpen, FiSettings, FiBell, FiX, FiPlay, FiUpload, FiFileText, FiClock, FiCheckCircle, FiAlertCircle, FiUsers as FiUsersIcon, FiChevronUp, FiChevronDown, FiMenu, FiFilm, FiCreditCard } from 'react-icons/fi';
+import { FiUsers, FiBarChart2, FiAward, FiBookOpen, FiSettings, FiBell, FiX, FiPlay, FiUpload, FiFileText, FiClock, FiCheckCircle, FiAlertCircle, FiUsers as FiUsersIcon, FiChevronUp, FiChevronDown, FiMenu, FiFilm, FiCreditCard, FiMessageSquare } from 'react-icons/fi';
 import TeachersModal from '../components/TeachersModal';
 import ReelsViewer from '../components/ReelsViewer';
 import NajotLogo from '../assets/Najot.png';
@@ -669,6 +669,7 @@ export default function StudentDashboard() {
 
   const navItems = [
     { name: "Guruhlarim", icon: <FiUsers size={18} /> },
+    { name: "Telegram", icon: <FiMessageSquare size={18} /> },
     { name: "Reels", icon: <FiFilm size={18} /> },
     { name: "To'lov", icon: <FiCreditCard size={18} /> },
     { name: "Reyting", icon: <FiAward size={18} /> },
@@ -771,6 +772,9 @@ export default function StudentDashboard() {
                     // Show Reels viewer directly - upload button will be inside
                     setIsReelsOpen(true);
                     closeMobileMenu();
+                  } else if (item.name === 'Telegram') {
+                    // Open Telegram Chat
+                    window.location.href = '/telegram';
                   } else {
                     setActiveNav(item.name);
                     if (item.name === 'Guruhlarim') {
