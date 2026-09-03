@@ -33,9 +33,10 @@ let homeworkRoutes, filesRoutes, coinsRoutes, notificationsRoutes, reelsRoutes, 
 if (USE_POSTGRES) {
   // PostgreSQL routes
   authRoutes = (await import('./routes/auth-postgres.js')).default;
+  studentsRoutes = (await import('./routes/students-postgres.js')).default; // ✅ PostgreSQL students
+  notificationsRoutes = (await import('./routes/notifications-postgres.js')).default; // ✅ PostgreSQL notifications
   // Boshqa route'lar hozircha NeDB'dan (keyinchalik migration)
   usersRoutes = (await import('./routes/users.js')).default;
-  studentsRoutes = (await import('./routes/students.js')).default;
   teachersRoutes = (await import('./routes/teachers.js')).default;
   coursesRoutes = (await import('./routes/courses.js')).default;
   roomsRoutes = (await import('./routes/rooms.js')).default;
@@ -46,7 +47,6 @@ if (USE_POSTGRES) {
   homeworkRoutes = (await import('./routes/homework.js')).default;
   filesRoutes = (await import('./routes/files.js')).default;
   coinsRoutes = (await import('./routes/coins.js')).default;
-  notificationsRoutes = (await import('./routes/notifications.js')).default;
   reelsRoutes = (await import('./routes/reels.js')).default;
   paymentsRoutes = (await import('./routes/payments.js')).default;
 } else {

@@ -3,6 +3,7 @@ import { studentsAPI, lessonsAPI, filesAPI, homeworkAPI, loadVideoForPlayback, c
 import { FiUsers, FiBarChart2, FiAward, FiBookOpen, FiSettings, FiBell, FiX, FiPlay, FiUpload, FiFileText, FiClock, FiCheckCircle, FiAlertCircle, FiUsers as FiUsersIcon, FiChevronUp, FiChevronDown, FiMenu, FiFilm, FiCreditCard, FiMessageSquare } from 'react-icons/fi';
 import TeachersModal from '../components/TeachersModal';
 import ReelsViewer from '../components/ReelsViewer';
+import TelegramChat from './TelegramChat';
 import NajotLogo from '../assets/Najot.png';
 import {
   Box,
@@ -696,6 +697,37 @@ export default function StudentDashboard() {
   return (
     <div style={{ display:'flex', minHeight:'100vh', backgroundColor:'#e8f0f7' }}>
 
+      {/* ═══ TELEGRAM VIEW ═══ */}
+      {activeNav === 'Telegram' && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 }}>
+          <TelegramChat />
+          {/* Back button */}
+          <button
+            onClick={() => setActiveNav('Guruhlarim')}
+            style={{
+              position: 'fixed',
+              top: '16px',
+              left: '16px',
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              background: '#7c3aed',
+              border: 'none',
+              color: '#fff',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '20px',
+              zIndex: 10000,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+            }}
+          >
+            ←
+          </button>
+        </div>
+      )}
+
       {/* 📱 Mobile Menu Button */}
       <button 
         className="mobile-menu-btn"
@@ -773,8 +805,9 @@ export default function StudentDashboard() {
                     setIsReelsOpen(true);
                     closeMobileMenu();
                   } else if (item.name === 'Telegram') {
-                    // Open Telegram Chat
-                    window.location.href = '/telegram';
+                    // Show Telegram in Student Dashboard
+                    setActiveNav('Telegram');
+                    closeMobileMenu();
                   } else {
                     setActiveNav(item.name);
                     if (item.name === 'Guruhlarim') {

@@ -213,8 +213,25 @@ export async function initPostgres() {
         user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
         title VARCHAR(255),
         message TEXT,
+        notification_type VARCHAR(50) DEFAULT 'general',
+        notification_data JSONB,
         is_read BOOLEAN DEFAULT FALSE,
+        created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // ═══ DEVICE TOKENS TABLE (for push notifications) ═══
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS device_tokens (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        token TEXT NOT NULL,
+        device_type VARCHAR(50) DEFAULT 'mobile',
+        is_active BOOLEAN DEFAULT TRUE,
+        last_used TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, token)
       )
     `);
 
