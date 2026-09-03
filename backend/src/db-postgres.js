@@ -414,6 +414,52 @@ export async function initPostgres() {
       console.log('✅ SUPER ADMIN created: 975661099 / Mohidil');
     }
 
+    // ═══ TEST TEACHER SEED ═══
+    const teacherCheck = await client.query(
+      'SELECT * FROM users WHERE phone = $1',
+      ['998901234568']
+    );
+
+    if (teacherCheck.rows.length === 0) {
+      const hashedPassword = bcrypt.hashSync('teacher123', 10);
+      const userResult = await client.query(
+        `INSERT INTO users (phone, password, role, full_name) 
+         VALUES ($1, $2, $3, $4) RETURNING id`,
+        ['998901234568', hashedPassword, 'TEACHER', 'Test Teacher']
+      );
+      
+      // Teacher profile yaratish
+      await client.query(
+        `INSERT INTO teachers (user_id, full_name, phone, subject) 
+         VALUES ($1, $2, $3, $4)`,
+        [userResult.rows[0].id, 'Test Teacher', '998901234568', 'Programming']
+      );
+      console.log('✅ TEST TEACHER created: 998901234568 / teacher123');
+    }
+
+    // ═══ TEST STUDENT SEED ═══
+    const studentCheck = await client.query(
+      'SELECT * FROM users WHERE phone = $1',
+      ['998901234569']
+    );
+
+    if (studentCheck.rows.length === 0) {
+      const hashedPassword = bcrypt.hashSync('student123', 10);
+      const userResult = await client.query(
+        `INSERT INTO users (phone, password, role, full_name) 
+         VALUES ($1, $2, $3, $4) RETURNING id`,
+        ['998901234569', hashedPassword, 'STUDENT', 'Test Student']
+      );
+      
+      // Student profile yaratish
+      await client.query(
+        `INSERT INTO students (user_id, full_name, phone, coins, xp) 
+         VALUES ($1, $2, $3, $4, $5)`,
+        [userResult.rows[0].id, 'Test Student', '998901234569', 100, 50]
+      );
+      console.log('✅ TEST STUDENT created: 998901234569 / student123');
+    }
+
     // ═══ DEFAULT CHAT GROUP SEED ═══
     const defaultChatCheck = await client.query(
       'SELECT * FROM chat_groups WHERE id = $1',
@@ -435,6 +481,8 @@ export async function initPostgres() {
     console.log('');
     console.log('🔐 ═══════════════════════════════════════════');
     console.log('👑 SUPER ADMIN: 975661099 / Mohidil');
+    console.log('👨‍🏫 TEST TEACHER: 998901234568 / teacher123');
+    console.log('👨‍🎓 TEST STUDENT: 998901234569 / student123');
     console.log('💬 DEFAULT CHAT: ID=1 (287-Maktab Umumiy Chat)');
     console.log('🔐 ═══════════════════════════════════════════');
     console.log('');
