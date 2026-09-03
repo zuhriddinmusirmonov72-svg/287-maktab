@@ -171,7 +171,8 @@ const TelegramChat = () => {
   };
 
   const cancelRecording = () => {
-    if (mediaRecorderRef.current) {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.onstop = null; // Prevent sending
       mediaRecorderRef.current.stop();
       
       // Clear audio chunks

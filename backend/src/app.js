@@ -77,9 +77,6 @@ const PORT = process.env.PORT || 3002;
   mkdirSync(join(__dirname, '..', dir), { recursive: true });
 });
 
-// DB init
-await initDB();
-
 const app = express();
 
 // CORS configuration for production

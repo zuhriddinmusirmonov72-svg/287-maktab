@@ -58,7 +58,11 @@ router.get('/:groupId', authMiddleware, async (req, res) => {
     );
     
     if (memberCheck.rows.length === 0) {
-      return res.status(403).json({ message: 'Access denied' });
+      // Auto-join
+      await query(
+        'INSERT INTO chat_group_members (chat_group_id, user_id, role) VALUES ($1, $2, $3) ON CONFLICT (chat_group_id, user_id) DO NOTHING',
+        [groupId, userId, 'member']
+      );
     }
     
     // Get messages
@@ -150,7 +154,11 @@ router.post('/:groupId', authMiddleware, upload.single('file'), async (req, res)
     );
     
     if (memberCheck.rows.length === 0) {
-      return res.status(403).json({ message: 'Access denied' });
+      // Auto-join
+      await query(
+        'INSERT INTO chat_group_members (chat_group_id, user_id, role) VALUES ($1, $2, $3) ON CONFLICT (chat_group_id, user_id) DO NOTHING',
+        [groupId, userId, 'member']
+      );
     }
     
     let fileUrl = null;
