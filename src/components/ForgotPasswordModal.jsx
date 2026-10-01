@@ -3,7 +3,7 @@ import { FiX, FiMail, FiLock, FiCheck } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.DEV ? '/api/v1' : 'https://two87-maktab-backend.onrender.com/api/v1';
+const API_BASE_URL = import.meta.env.DEV ? '/api/v1' : 'https://maktab287-backend.onrender.com/api/v1';
 
 const ForgotPasswordModal = ({ isOpen, onClose }) => {
   const [step, setStep] = useState(1); // 1: email, 2: otp, 3: new password

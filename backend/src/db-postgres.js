@@ -10,8 +10,10 @@ const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/ma
 // PostgreSQL connection pool
 export const pool = new Pool({
   connectionString: DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  max: 20, // Maximum number of clients in the pool
+  ssl: DATABASE_URL.includes('render.com') || DATABASE_URL.includes('oregon-postgres') 
+    ? { rejectUnauthorized: false } 
+    : (process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false),
+  max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
 });
