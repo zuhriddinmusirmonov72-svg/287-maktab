@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { query } from '../db-postgres.js';
 import { JWT_SECRET, authMiddleware } from '../middleware/auth.js';
-import { generateOtpCode, sendOtpViaTelegram } from '../utils/sms.js';
+import { generateOtpCode, sendOtpViaTelegram, sendEmailOtp } from '../utils/sms.js';
 
 const router = Router();
 
@@ -14,14 +14,23 @@ router.post('/login', async (req, res) => {
   try {
     const { phone, password } = req.body;
     if (!phone || !password) {
-      return res.status(400).json({ message: 'Telefon va parol kiritilishi shart' });
+      return res.status(400).json({ message: 'Telefon/email va parol kiritilishi shart' });
     }
 
-    // Phoneni xuddi kiritilganidek qidirish (998 qo'shmasdan)
-    const userResult = await query('SELECT * FROM users WHERE phone = $1', [phone.trim()]);
+    const input = phone.trim();
+
+    // Email yoki telefon bilan qidirish
+    let userResult;
+    const isEmail = input.includes('@');
+
+    if (isEmail) {
+      userResult = await query('SELECT * FROM users WHERE LOWER(email) = $1', [input.toLowerCase()]);
+    } else {
+      userResult = await query('SELECT * FROM users WHERE phone = $1', [input]);
+    }
     
     if (userResult.rows.length === 0) {
-      return res.status(401).json({ message: 'Telefon yoki parol noto\'g\'ri' });
+      return res.status(401).json({ message: 'Telefon/email yoki parol noto\'g\'ri' });
     }
 
     const user = userResult.rows[0];

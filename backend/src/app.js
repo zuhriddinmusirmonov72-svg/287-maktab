@@ -5,6 +5,8 @@ import { fileURLToPath } from 'url';
 import { mkdirSync } from 'fs';
 import swaggerUi from 'swagger-ui-express';
 import 'dotenv/config';
+import forgotPasswordRouter from './routes/forgot-password.js';
+import groupHomeworkRouter from './routes/groupHomework.js';
 
 // =============================================
 // 🗄️ DATABASE - PostgreSQL yoki NeDB
@@ -151,22 +153,40 @@ api.use('/reels',         reelsRoutes);
 api.use('/payments',      paymentsRoutes);  // ✅ Yangi: Payment tizimi
 api.use('/subscription',  paymentsRoutes);  // /subscription ham payments route dan
 
+// Forgot password (email OTP)
+api.use('/auth/forgot-password', forgotPasswordRouter);
+
 // Homework ikki prefix bilan:
 //   /homework/all, /homework/:groupId, /homework/:id  → prefix: /homework
 //   /group/:groupId/homework/:homeworkId/results     → prefix: / (root)
 //   /group/:groupId/homework/:homeworkId/check       → prefix: / (root)
 api.use('/homework', homeworkRoutes);
 // group/ prefiksli endpointlar uchun alohida router
-import groupHomeworkRouter from './routes/groupHomework.js';
 api.use('/', groupHomeworkRouter);
 
-// ===== TELEGRAM-STYLE CHAT ROUTES (PostgreSQL only) =====
+// ===== TELEGRAM-STYLE CHAT ROUTES =====
 if (USE_POSTGRES) {
   const chatGroupsRoutes = (await import('./routes/chat-groups.js')).default;
   const chatMessagesRoutes = (await import('./routes/chat-messages.js')).default;
   api.use('/chat-groups', chatGroupsRoutes);
   api.use('/chat-messages', chatMessagesRoutes);
   console.log('✅ Chat routes loaded (PostgreSQL)');
+} else {
+  // NeDB uchun sodda chat routes
+  console.log('⚠️  Chat feature requires PostgreSQL. Please enable DATABASE_URL in .env');
+  
+  // Temporary stub routes to prevent 404 errors
+  api.get('/chat-messages/:groupId', (req, res) => {
+    res.json({ success: true, data: [], message: 'Chat requires PostgreSQL' });
+  });
+  
+  api.post('/chat-messages/:groupId', (req, res) => {
+    res.status(503).json({ success: false, message: 'Chat requires PostgreSQL. Enable DATABASE_URL in backend/.env' });
+  });
+  
+  api.delete('/chat-messages/:messageId', (req, res) => {
+    res.status(503).json({ success: false, message: 'Chat requires PostgreSQL' });
+  });
 }
 
 app.use('/api/v1', api);

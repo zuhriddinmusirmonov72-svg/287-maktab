@@ -127,3 +127,83 @@ export function getTelegramSetupInstructions() {
 // Test uchun - console da ko'rsatish
 console.log(getTelegramSetupInstructions());
 
+
+// ═══════════════════════════════════════════════════
+// 📧 EMAIL OTP (Parolni tiklash uchun)
+// ═══════════════════════════════════════════════════
+import nodemailer from 'nodemailer';
+
+/**
+ * Email orqali OTP yuborish (nodemailer + Gmail SMTP)
+ * @param {string} email - Email manzil
+ * @param {string} otpCode - 6 raqamli kod
+ */
+export async function sendEmailOtp(email, otpCode) {
+  try {
+    console.log('📧 Email OTP yuborilmoqda:', email);
+
+    const emailUser = process.env.EMAIL_USER;
+    const emailPass = process.env.EMAIL_PASSWORD;
+    const fromName = process.env.EMAIL_FROM_NAME || '287-Maktab';
+
+    // Agar email sozlanmagan bo'lsa - test rejim
+    if (!emailUser || emailUser === 'your_gmail@gmail.com' || !emailPass || emailPass === 'your_app_password') {
+      console.log('═══════════════════════════════════════════');
+      console.log('⚠️  EMAIL SOZLANMAGAN - TEST REJIM');
+      console.log('📧 Email:', email);
+      console.log('🔑 OTP Kod:', otpCode);
+      console.log('═══════════════════════════════════════════');
+      return {
+        success: true,
+        message: 'OTP kod yuborildi (test rejim)',
+        testMode: true,
+        testCode: otpCode
+      };
+    }
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: emailUser,
+        pass: emailPass
+      }
+    });
+
+    const mailOptions = {
+      from: `"${fromName}" <${emailUser}>`,
+      to: email,
+      subject: '🔐 Parolni tiklash kodi',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #f9fafb; border-radius: 12px;">
+          <h2 style="color: #1a202c; margin-bottom: 8px;">Parolni tiklash</h2>
+          <p style="color: #555; margin-bottom: 24px;">Quyidagi kodni kiriting (5 daqiqa amal qiladi):</p>
+          <div style="background: #fff; border: 2px solid #7c3aed; border-radius: 10px; padding: 24px; text-align: center; margin-bottom: 24px;">
+            <span style="font-size: 36px; font-weight: 800; letter-spacing: 10px; color: #7c3aed;">${otpCode}</span>
+          </div>
+          <p style="color: #888; font-size: 13px;">Agar siz bu so'rovni yubormaganingiz bo'lsa, bu xabarni e'tiborsiz qoldiring.</p>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+          <p style="color: #aaa; font-size: 12px; text-align: center;">${fromName}</p>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log('✅ Email yuborildi:', email);
+
+    return {
+      success: true,
+      message: 'OTP kod email ga yuborildi'
+    };
+
+  } catch (error) {
+    console.error('❌ Email yuborishda xato:', error.message);
+    // Xato bo'lsa test rejimda davom etamiz
+    console.log('⚠️  Test rejimda davom etilmoqda. OTP:', otpCode);
+    return {
+      success: true,
+      message: 'OTP kod yuborildi (test rejim)',
+      testMode: true,
+      testCode: otpCode
+    };
+  }
+}

@@ -6,6 +6,7 @@ import { studentsAPI, groupsAPI } from '../api/api';
 import { AppContext } from '../context/AppContext';
 import { useConfirm } from '../components/ConfirmProvider';
 import StudentInfoModal from '../components/StudentInfoModal';
+import { getImageUrl } from '../utils/imageUrl'; // ✅ Import helper
 
 const Students = () => {
   const { t } = useContext(AppContext);
@@ -100,11 +101,23 @@ const Students = () => {
   // ➕ YANGI TALABA QO'SHISH
   // POST /api/v1/students  (multipart/form-data)
   // =============================================
+  // Email maydonini majburiy qilish
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!form.full_name || !form.phone || (!editingId && !form.password)) {
       toast.error(editingId ? 'Ism va telefon majburiy!' : 'Ism, telefon va parol majburiy!');
+      return;
+    }
+
+    if (!form.email || !form.email.trim()) {
+      toast.error('Email manzil majburiy! (Parol tiklash uchun kerak)');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email.trim())) {
+      toast.error("Noto'g'ri email format! Misol: ali@gmail.com");
       return;
     }
 
@@ -379,9 +392,13 @@ const Students = () => {
                           }}>
                             {s.photo
                               ? <img 
-                                  src={s.photo.startsWith('http') ? s.photo : `https://najot-edu.softwareengineer.uz/files/${s.photo.split('/').pop()}`} 
+                                  src={getImageUrl(s.photo)} 
                                   alt="" 
                                   style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                    e.target.parentElement.textContent = getInitials(s);
+                                  }}
                                 />
                               : getInitials(s)
                             }
@@ -501,13 +518,18 @@ const Students = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Email <span style={{ color: '#9ca3af', fontSize: '11px' }}>(ixtiyoriy)</span></label>
+              <label className="form-label">Email <span style={{ color: 'red' }}>*</span></label>
               <input
-                type="email" placeholder="ali@gmail.com"
+                type="email"
+                required
+                placeholder="ali@gmail.com"
                 className="form-input"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
               />
+              <small style={{ color: '#9ca3af', fontSize: '11px', marginTop: '4px', display: 'block' }}>
+                Parol unutilganda tiklash uchun ishlatiladi
+              </small>
             </div>
 
             <div className="form-group">

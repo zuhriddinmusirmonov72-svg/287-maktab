@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { teachersAPI, groupsAPI } from '../api/api';
 import { AppContext } from '../context/AppContext';
 import { useConfirm } from '../components/ConfirmProvider';
+import { getImageUrl } from '../utils/imageUrl';
 
 const Teachers = () => {
   const { t } = useContext(AppContext);
@@ -370,9 +371,13 @@ const Teachers = () => {
                           }}>
                             {t.photo
                               ? <img 
-                                  src={t.photo.startsWith('http') ? t.photo : `https://najot-edu.softwareengineer.uz/files/${t.photo.split('/').pop()}`} 
+                                  src={getImageUrl(t.photo)} 
                                   alt="" 
                                   style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                    e.target.parentElement.textContent = getInitials(t);
+                                  }}
                                 />
                               : getInitials(t)
                             }

@@ -137,10 +137,19 @@ router.get('/one/:id', async (req, res) => {
 // =============================================
 router.post('/', upload.single('photo'), async (req, res) => {
   try {
-    const { full_name, phone, password = 'student123' } = req.body;
+    const { full_name, phone, password = 'student123', email } = req.body;
     
     if (!full_name || !phone) {
       return res.status(400).json({ message: 'Ism va telefon kiritilishi shart' });
+    }
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email manzil majburiy (parol tiklash uchun kerak)' });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: "Noto'g'ri email format" });
     }
     
     // Check if phone already exists
@@ -152,16 +161,26 @@ router.post('/', upload.single('photo'), async (req, res) => {
     if (existingUser.rows.length > 0) {
       return res.status(400).json({ message: 'Bu telefon raqam allaqachon mavjud' });
     }
+
+    // Check if email already exists
+    const existingEmail = await query(
+      'SELECT * FROM users WHERE LOWER(email) = $1',
+      [email.trim().toLowerCase()]
+    );
+
+    if (existingEmail.rows.length > 0) {
+      return res.status(400).json({ message: 'Bu email manzil allaqachon mavjud' });
+    }
     
-    // ✅ PAROLNI HASH QILISH - Bu eng muhim!
+    // ✅ PAROLNI HASH QILISH
     const hashedPassword = bcrypt.hashSync(password, 10);
     
-    // Create user
+    // Create user (email bilan)
     const userResult = await query(
-      `INSERT INTO users (phone, password, role, full_name) 
-       VALUES ($1, $2, $3, $4) 
+      `INSERT INTO users (phone, password, role, full_name, email) 
+       VALUES ($1, $2, $3, $4, $5) 
        RETURNING id`,
-      [phone, hashedPassword, 'STUDENT', full_name]
+      [phone, hashedPassword, 'STUDENT', full_name, email.trim().toLowerCase()]
     );
     
     const userId = userResult.rows[0].id;

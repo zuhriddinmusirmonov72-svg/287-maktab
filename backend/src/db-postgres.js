@@ -41,10 +41,16 @@ export async function initPostgres() {
         password VARCHAR(255) NOT NULL,
         role VARCHAR(50) NOT NULL,
         full_name VARCHAR(255),
+        email VARCHAR(255),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Email column qo'shish (eski database uchun migration)
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(255)
+    `).catch(() => {});
 
     // ═══ ROOMS TABLE ═══
     await client.query(`
@@ -239,12 +245,20 @@ export async function initPostgres() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS otp_codes (
         id SERIAL PRIMARY KEY,
-        phone VARCHAR(20) NOT NULL,
+        phone VARCHAR(20),
+        email VARCHAR(255),
         code VARCHAR(10) NOT NULL,
+        verified BOOLEAN DEFAULT FALSE,
         expires_at TIMESTAMP NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Email va verified column qo'shish (eski database uchun migration)
+    await client.query(`ALTER TABLE otp_codes ADD COLUMN IF NOT EXISTS email VARCHAR(255)`).catch(() => {});
+    await client.query(`ALTER TABLE otp_codes ADD COLUMN IF NOT EXISTS verified BOOLEAN DEFAULT FALSE`).catch(() => {});
+    // phone column NOT NULL constraint ni olib tashlash (email OTP uchun)
+    await client.query(`ALTER TABLE otp_codes ALTER COLUMN phone DROP NOT NULL`).catch(() => {});
 
     // ═══ PAYMENTS TABLE ═══
     await client.query(`

@@ -670,7 +670,7 @@ export default function StudentDashboard() {
 
   const navItems = [
     { name: "Guruhlarim", icon: <FiUsers size={18} /> },
-    { name: "Telegram", icon: <FiMessageSquare size={18} /> },
+    { name: "Telegram", icon: <FiMessageSquare size={18} /> }, // ✅ PostgreSQL ishlayapti
     { name: "Reels", icon: <FiFilm size={18} /> },
     { name: "To'lov", icon: <FiCreditCard size={18} /> },
     { name: "Reyting", icon: <FiAward size={18} /> },

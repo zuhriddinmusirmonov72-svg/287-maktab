@@ -6,6 +6,7 @@ import { authAPI } from '../api/api';
 import loginImage from '../assets/login.png';
 import NajotLogo from '../assets/Najot.png';
 import { AppContext } from '../context/AppContext';
+import ForgotPasswordModal from '../components/ForgotPasswordModal';
 
 const Login = () => {
   const { t } = useContext(AppContext);
@@ -13,6 +14,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false); // ✅ Forgot password modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -429,7 +431,7 @@ const Login = () => {
               </label>
               <input
                 type="text"
-                placeholder="975661099"
+                placeholder="975661099 yoki email@gmail.com"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 className="form-input"
@@ -445,7 +447,7 @@ const Login = () => {
                   display: 'block',
                 }}
               >
-                {t.phoneExample}
+                Telefon raqam yoki email manzil kiriting
               </small>
             </div>
 
@@ -501,7 +503,6 @@ const Login = () => {
             <div style={{ textAlign: 'right' }}>
               <button
                 type="button"
-                onClick={() => setIsModalOpen(true)}
                 style={{
                   background: 'none',
                   border: 'none',
@@ -513,6 +514,7 @@ const Login = () => {
                   textDecoration: 'none',
                   transition: 'color 0.2s ease',
                 }}
+                onClick={() => setIsForgotPasswordOpen(true)}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.color = '#4c5fd6';
                   e.currentTarget.style.textDecoration = 'underline';
@@ -1201,6 +1203,12 @@ const Login = () => {
           </div>
         </div>
       )}
+
+      {/* ✅ YANGI - EMAIL ORQALI PAROLNI TIKLASH MODAL */}
+      <ForgotPasswordModal
+        isOpen={isForgotPasswordOpen}
+        onClose={() => setIsForgotPasswordOpen(false)}
+      />
     </div>
   );
 };

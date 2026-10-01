@@ -26,12 +26,12 @@ const Sidebar = ({ isOpen, onToggle }) => {
     ...(!isTeacher ? [{ name: t.teachers, path: '/teachers',  icon: <FaUserGraduate size={18} /> }] : []),
     { name: t.groups,   path: isTeacher ? '/super-admin-2/groups' : '/groups',    icon: <FaUsers size={18} /> },
     { name: t.students, path: isTeacher ? '/super-admin-2/students' : '/students',  icon: <FaGem size={18} /> },
-    { name: "Telegram",    path: '/telegram',     icon: <FaTelegram size={18} /> }, // ✅ Telegram chat
-    { name: "To'lov qilganlar",    path: '/payments',     icon: <FaCoins size={18} /> }, // ✅ Barcha rollar uchun
+    { name: "Telegram",    path: '/telegram',     icon: <FaTelegram size={18} /> }, // ✅ PostgreSQL ishlayapti
+    { name: "To'lov qilganlar",    path: '/payments',     icon: <FaCoins size={18} /> },
   ];
 
   return (
-    <div style={{ display: 'flex', position: 'relative' }}>
+    <div style={{ display: 'flex', position: 'relative' }}> 
       
       {/* 📱 MOBILE HAMBURGER BUTTON - Tepada chap burchakda */}
       <button

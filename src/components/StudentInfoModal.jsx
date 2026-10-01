@@ -1,5 +1,6 @@
 import React from 'react';
 import { FiX } from 'react-icons/fi';
+import { getImageUrl } from '../utils/imageUrl';
 
 const StudentInfoModal = ({ student, onClose }) => {
   if (!student) return null;
@@ -9,7 +10,7 @@ const StudentInfoModal = ({ student, onClose }) => {
   const email = student.email || '—';
   const address = student.address || '—';
   const photo = student.photo || student.image || null;
-  const photoUrl = photo && photo.startsWith('http') ? photo : photo ? `https://najot-edu.softwareengineer.uz/files/${String(photo).split('/').pop()}` : null;
+  const photoUrl = getImageUrl(photo);
 
   return (
     <div
