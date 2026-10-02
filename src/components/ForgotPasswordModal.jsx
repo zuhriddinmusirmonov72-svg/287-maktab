@@ -63,8 +63,8 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
       if (response.data.success) {
         toast.success('Tasdiqlash kodi email manzilingizga yuborildi');
         
-        // Test mode
-        if (response.data.testCode) {
+        // Test mode - faqat development da ko'rsatish
+        if (response.data.testCode && import.meta.env.DEV) {
           setTestCode(response.data.testCode);
           toast.success(`TEST CODE: ${response.data.testCode}`, { duration: 10000 });
         }
@@ -271,12 +271,6 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
         {/* Step 2: OTP */}
         {step === 2 && (
           <form onSubmit={handleVerifyOtp}>
-            {testCode && (
-              <div style={{ padding: '12px', background: '#fef3c7', borderRadius: '8px', marginBottom: '16px', fontSize: '14px' }}>
-                <strong>TEST CODE:</strong> {testCode}
-              </div>
-            )}
-            
             <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '14px' }}>
                 Tasdiqlash kodi (6 raqam)
