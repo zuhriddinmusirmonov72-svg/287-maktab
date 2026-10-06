@@ -86,6 +86,7 @@ router.get('/:groupId', async (req, res) => {
       SELECT 
         h.*,
         l.topic as lesson_topic,
+        l.lesson_date,
         COUNT(DISTINCT ha.id) FILTER (WHERE ha.status = 'PENDING') as pending_count,
         COUNT(DISTINCT ha.id) FILTER (WHERE ha.status = 'ACCEPTED') as accepted_count,
         COUNT(DISTINCT ha.id) FILTER (WHERE ha.status = 'REJECTED') as rejected_count,
@@ -96,17 +97,32 @@ router.get('/:groupId', async (req, res) => {
       LEFT JOIN homework_answers ha ON h.id = ha.homework_id
       LEFT JOIN student_group sg ON h.group_id = sg.group_id
       WHERE h.group_id = $1
-      GROUP BY h.id, l.topic
+      GROUP BY h.id, l.topic, l.lesson_date
       ORDER BY h.created_at DESC
     `, [groupId]);
     
-    const data = result.rows.map(row => ({
-      ...row,
-      not_sent_count: parseInt(row.students_count || 0) - parseInt(row.submitted_count || 0)
-    }));
+    const data = result.rows.map(row => {
+      const studentsCount = parseInt(row.students_count || 0);
+      const submittedCount = parseInt(row.submitted_count || 0);
+      const pendingCount = parseInt(row.pending_count || 0);
+      const acceptedCount = parseInt(row.accepted_count || 0);
+      const rejectedCount = parseInt(row.rejected_count || 0);
+      const notSentCount = studentsCount - submittedCount;
+      
+      return {
+        ...row,
+        students_count: studentsCount,
+        submitted_count: submittedCount,
+        pending_count: pendingCount,
+        accepted_count: acceptedCount,
+        rejected_count: rejectedCount,
+        not_sent_count: notSentCount
+      };
+    });
     
     res.json({ success: true, data });
   } catch (err) {
+    console.error('Homework list xato:', err);
     res.status(500).json({ message: err.message });
   }
 });
