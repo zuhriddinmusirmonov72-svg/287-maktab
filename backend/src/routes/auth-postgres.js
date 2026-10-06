@@ -41,10 +41,12 @@ router.post('/login', async (req, res) => {
 
     // Profile ma'lumotlarini olish
     let profile = null;
-    if (user.role.toLowerCase() === 'teacher') {
+    const role = String(user.role || '').toUpperCase();
+    
+    if (role === 'TEACHER') {
       const teacherResult = await query('SELECT * FROM teachers WHERE user_id = $1', [user.id]);
       profile = teacherResult.rows[0] || null;
-    } else if (user.role.toLowerCase() === 'student') {
+    } else if (role === 'STUDENT') {
       const studentResult = await query('SELECT * FROM students WHERE user_id = $1', [user.id]);
       profile = studentResult.rows[0] || null;
     }

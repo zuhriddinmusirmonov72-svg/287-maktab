@@ -6,7 +6,7 @@ import { mkdirSync } from 'fs';
 import swaggerUi from 'swagger-ui-express';
 import 'dotenv/config';
 import forgotPasswordRouter from './routes/forgot-password.js';
-import groupHomeworkRouter from './routes/groupHomework.js';
+import groupHomeworkRouter from './routes/groupHomework-postgres.js'; // ✅ PostgreSQL versiya
 
 // =============================================
 // 🗄️ DATABASE - FAQAT PostgreSQL

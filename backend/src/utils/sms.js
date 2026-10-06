@@ -182,17 +182,14 @@ export async function sendEmailOtp(email, otpCode) {
       `
     };
 
-    // Async yuborish - tezroq javob qaytarish uchun
-    transporter.sendMail(mailOptions).then(() => {
-      console.log('✅ Email muvaffaqiyatli yuborildi:', email);
-    }).catch(err => {
-      console.error('❌ Email yuborishda xato (async):', err.message);
-    });
+    // Sinxron yuborish - email yuborilishini kutamiz
+    console.log('📤 Email yuborilmoqda...');
+    await transporter.sendMail(mailOptions);
+    console.log('✅ Email muvaffaqiyatli yuborildi:', email);
 
-    // Darhol javob qaytarish - foydalanuvchi kutmaydi
     return {
       success: true,
-      message: 'OTP kod email manzilingizga yuborilmoqda'
+      message: 'OTP kod email manzilingizga yuborildi'
     };
 
   } catch (error) {
