@@ -9,9 +9,9 @@ import forgotPasswordRouter from './routes/forgot-password.js';
 import groupHomeworkRouter from './routes/groupHomework.js';
 
 // =============================================
-// 🗄️ DATABASE - PostgreSQL yoki NeDB
+// 🗄️ DATABASE - NeDB (Hozircha)
 // =============================================
-const USE_POSTGRES = process.env.DATABASE_URL ? true : false;
+const USE_POSTGRES = false; // ❌ Hozircha NeDB ishlatamiz (tez ishlaydi)
 
 if (USE_POSTGRES) {
   console.log('📊 Using PostgreSQL database');
@@ -26,50 +26,24 @@ if (USE_POSTGRES) {
 import { swaggerDoc } from './swagger.js';
 
 // =============================================
-// 📡 ROUTES - PostgreSQL yoki NeDB
+// 📡 ROUTES - NeDB (Hozircha)
 // =============================================
-let authRoutes, usersRoutes, studentsRoutes, teachersRoutes, coursesRoutes;
-let roomsRoutes, groupsRoutes, studentGroupRoutes, lessonsRoutes, attendanceRoutes;
-let homeworkRoutes, filesRoutes, coinsRoutes, notificationsRoutes, reelsRoutes, paymentsRoutes;
-
-if (USE_POSTGRES) {
-  // PostgreSQL routes
-  authRoutes = (await import('./routes/auth-postgres.js')).default;
-  studentsRoutes = (await import('./routes/students-postgres.js')).default; // ✅ PostgreSQL students
-  notificationsRoutes = (await import('./routes/notifications-postgres.js')).default; // ✅ PostgreSQL notifications
-  // Boshqa route'lar hozircha NeDB'dan (keyinchalik migration)
-  usersRoutes = (await import('./routes/users.js')).default;
-  teachersRoutes = (await import('./routes/teachers.js')).default;
-  coursesRoutes = (await import('./routes/courses.js')).default;
-  roomsRoutes = (await import('./routes/rooms.js')).default;
-  groupsRoutes = (await import('./routes/groups.js')).default;
-  studentGroupRoutes = (await import('./routes/studentGroup.js')).default;
-  lessonsRoutes = (await import('./routes/lessons.js')).default;
-  attendanceRoutes = (await import('./routes/attendance.js')).default;
-  homeworkRoutes = (await import('./routes/homework.js')).default;
-  filesRoutes = (await import('./routes/files.js')).default;
-  coinsRoutes = (await import('./routes/coins.js')).default;
-  reelsRoutes = (await import('./routes/reels.js')).default;
-  paymentsRoutes = (await import('./routes/payments.js')).default;
-} else {
-  // NeDB routes
-  authRoutes = (await import('./routes/auth.js')).default;
-  usersRoutes = (await import('./routes/users.js')).default;
-  studentsRoutes = (await import('./routes/students.js')).default;
-  teachersRoutes = (await import('./routes/teachers.js')).default;
-  coursesRoutes = (await import('./routes/courses.js')).default;
-  roomsRoutes = (await import('./routes/rooms.js')).default;
-  groupsRoutes = (await import('./routes/groups.js')).default;
-  studentGroupRoutes = (await import('./routes/studentGroup.js')).default;
-  lessonsRoutes = (await import('./routes/lessons.js')).default;
-  attendanceRoutes = (await import('./routes/attendance.js')).default;
-  homeworkRoutes = (await import('./routes/homework.js')).default;
-  filesRoutes = (await import('./routes/files.js')).default;
-  coinsRoutes = (await import('./routes/coins.js')).default;
-  notificationsRoutes = (await import('./routes/notifications.js')).default;
-  reelsRoutes = (await import('./routes/reels.js')).default;
-  paymentsRoutes = (await import('./routes/payments.js')).default;
-}
+const authRoutes = (await import('./routes/auth.js')).default;
+const usersRoutes = (await import('./routes/users.js')).default;
+const studentsRoutes = (await import('./routes/students.js')).default;
+const teachersRoutes = (await import('./routes/teachers.js')).default;
+const coursesRoutes = (await import('./routes/courses.js')).default;
+const roomsRoutes = (await import('./routes/rooms.js')).default;
+const groupsRoutes = (await import('./routes/groups.js')).default;
+const studentGroupRoutes = (await import('./routes/studentGroup.js')).default;
+const lessonsRoutes = (await import('./routes/lessons.js')).default;
+const attendanceRoutes = (await import('./routes/attendance.js')).default;
+const homeworkRoutes = (await import('./routes/homework.js')).default;
+const filesRoutes = (await import('./routes/files.js')).default;
+const coinsRoutes = (await import('./routes/coins.js')).default;
+const notificationsRoutes = (await import('./routes/notifications.js')).default;
+const reelsRoutes = (await import('./routes/reels.js')).default;
+const paymentsRoutes = (await import('./routes/payments.js')).default;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3002;
@@ -165,29 +139,21 @@ api.use('/homework', homeworkRoutes);
 api.use('/', groupHomeworkRouter);
 
 // ===== TELEGRAM-STYLE CHAT ROUTES =====
-if (USE_POSTGRES) {
-  const chatGroupsRoutes = (await import('./routes/chat-groups.js')).default;
-  const chatMessagesRoutes = (await import('./routes/chat-messages.js')).default;
-  api.use('/chat-groups', chatGroupsRoutes);
-  api.use('/chat-messages', chatMessagesRoutes);
-  console.log('✅ Chat routes loaded (PostgreSQL)');
-} else {
-  // NeDB uchun sodda chat routes
-  console.log('⚠️  Chat feature requires PostgreSQL. Please enable DATABASE_URL in .env');
-  
-  // Temporary stub routes to prevent 404 errors
-  api.get('/chat-messages/:groupId', (req, res) => {
-    res.json({ success: true, data: [], message: 'Chat requires PostgreSQL' });
-  });
-  
-  api.post('/chat-messages/:groupId', (req, res) => {
-    res.status(503).json({ success: false, message: 'Chat requires PostgreSQL. Enable DATABASE_URL in backend/.env' });
-  });
-  
-  api.delete('/chat-messages/:messageId', (req, res) => {
-    res.status(503).json({ success: false, message: 'Chat requires PostgreSQL' });
-  });
-}
+// NeDB chat route'lar yo'q, faqat stub
+console.log('⚠️  Chat feature requires PostgreSQL. Temporarily disabled.');
+
+// Temporary stub routes to prevent 404 errors
+api.get('/chat-messages/:groupId', (req, res) => {
+  res.json({ success: true, data: [], message: 'Chat requires PostgreSQL' });
+});
+
+api.post('/chat-messages/:groupId', (req, res) => {
+  res.status(503).json({ success: false, message: 'Chat requires PostgreSQL. Enable DATABASE_URL in backend/.env' });
+});
+
+api.delete('/chat-messages/:messageId', (req, res) => {
+  res.status(503).json({ success: false, message: 'Chat requires PostgreSQL' });
+});
 
 app.use('/api/v1', api);
 
