@@ -25,6 +25,26 @@ router.get('/my-group-lessons/:groupId', async (req, res) => {
   }
 });
 
+// GET /lessons/my/group/:groupId - Guruh darslari (alternative route)
+router.get('/my/group/:groupId', async (req, res) => {
+  try {
+    const groupId = parseInt(req.params.groupId);
+    
+    const result = await pool.query(`
+      SELECT l.*,
+             (SELECT COUNT(*) FROM files WHERE lesson_id = l.id) as video_count,
+             (SELECT COUNT(*) FROM homeworks WHERE lesson_id = l.id) as homework_count
+      FROM lessons l
+      WHERE l.group_id = $1
+      ORDER BY l.lesson_date DESC, l.created_at DESC
+    `, [groupId]);
+    
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // GET /lessons/:id - Bitta dars
 router.get('/:id', async (req, res) => {
   try {
