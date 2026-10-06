@@ -9,41 +9,42 @@ import forgotPasswordRouter from './routes/forgot-password.js';
 import groupHomeworkRouter from './routes/groupHomework.js';
 
 // =============================================
-// 🗄️ DATABASE - NeDB (Hozircha)
+// 🗄️ DATABASE - FAQAT PostgreSQL
 // =============================================
-const USE_POSTGRES = false; // ❌ Hozircha NeDB ishlatamiz (tez ishlaydi)
+const USE_POSTGRES = true; // ✅ PostgreSQL majburiy
 
-if (USE_POSTGRES) {
-  console.log('📊 Using PostgreSQL database');
-  const { initPostgres } = await import('./db-postgres.js');
-  await initPostgres();
-} else {
-  console.log('📦 Using NeDB (file-based) database');
-  const { initDB } = await import('./database.js');
-  await initDB();
-}
+console.log('📊 Initializing PostgreSQL database...');
+const { initPostgres } = await import('./db-postgres.js');
+await initPostgres();
+console.log('✅ PostgreSQL initialized!');
 
 import { swaggerDoc } from './swagger.js';
 
 // =============================================
-// 📡 ROUTES - NeDB (Hozircha)
+// 📡 ROUTES - PostgreSQL
 // =============================================
-const authRoutes = (await import('./routes/auth.js')).default;
+console.log('📡 Loading PostgreSQL routes...');
+
+const authRoutes = (await import('./routes/auth-postgres.js')).default;
+const studentsRoutes = (await import('./routes/students-postgres.js')).default;
+const teachersRoutes = (await import('./routes/teachers-postgres.js')).default;
+const coursesRoutes = (await import('./routes/courses-postgres.js')).default;
+const roomsRoutes = (await import('./routes/rooms-postgres.js')).default;
+const groupsRoutes = (await import('./routes/groups-postgres.js')).default;
+const studentGroupRoutes = (await import('./routes/studentGroup-postgres.js')).default;
+const notificationsRoutes = (await import('./routes/notifications-postgres.js')).default;
+
+// ⚠️ Quyidagilar hali NeDB'dan (keyingi bosqichda migration)
 const usersRoutes = (await import('./routes/users.js')).default;
-const studentsRoutes = (await import('./routes/students.js')).default;
-const teachersRoutes = (await import('./routes/teachers.js')).default;
-const coursesRoutes = (await import('./routes/courses.js')).default;
-const roomsRoutes = (await import('./routes/rooms.js')).default;
-const groupsRoutes = (await import('./routes/groups.js')).default;
-const studentGroupRoutes = (await import('./routes/studentGroup.js')).default;
 const lessonsRoutes = (await import('./routes/lessons.js')).default;
 const attendanceRoutes = (await import('./routes/attendance.js')).default;
 const homeworkRoutes = (await import('./routes/homework.js')).default;
 const filesRoutes = (await import('./routes/files.js')).default;
 const coinsRoutes = (await import('./routes/coins.js')).default;
-const notificationsRoutes = (await import('./routes/notifications.js')).default;
 const reelsRoutes = (await import('./routes/reels.js')).default;
 const paymentsRoutes = (await import('./routes/payments.js')).default;
+
+console.log('✅ All routes loaded!');
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3002;
@@ -139,21 +140,11 @@ api.use('/homework', homeworkRoutes);
 api.use('/', groupHomeworkRouter);
 
 // ===== TELEGRAM-STYLE CHAT ROUTES =====
-// NeDB chat route'lar yo'q, faqat stub
-console.log('⚠️  Chat feature requires PostgreSQL. Temporarily disabled.');
-
-// Temporary stub routes to prevent 404 errors
-api.get('/chat-messages/:groupId', (req, res) => {
-  res.json({ success: true, data: [], message: 'Chat requires PostgreSQL' });
-});
-
-api.post('/chat-messages/:groupId', (req, res) => {
-  res.status(503).json({ success: false, message: 'Chat requires PostgreSQL. Enable DATABASE_URL in backend/.env' });
-});
-
-api.delete('/chat-messages/:messageId', (req, res) => {
-  res.status(503).json({ success: false, message: 'Chat requires PostgreSQL' });
-});
+const chatGroupsRoutes = (await import('./routes/chat-groups.js')).default;
+const chatMessagesRoutes = (await import('./routes/chat-messages.js')).default;
+api.use('/chat-groups', chatGroupsRoutes);
+api.use('/chat-messages', chatMessagesRoutes);
+console.log('✅ Chat routes loaded (PostgreSQL)');
 
 app.use('/api/v1', api);
 
