@@ -21,7 +21,7 @@ console.log('✅ PostgreSQL initialized!');
 import { swaggerDoc } from './swagger.js';
 
 // =============================================
-// 📡 ROUTES - PostgreSQL
+// 📡 ROUTES - TO'LIQ PostgreSQL
 // =============================================
 console.log('📡 Loading PostgreSQL routes...');
 
@@ -32,14 +32,14 @@ const coursesRoutes = (await import('./routes/courses-postgres.js')).default;
 const roomsRoutes = (await import('./routes/rooms-postgres.js')).default;
 const groupsRoutes = (await import('./routes/groups-postgres.js')).default;
 const studentGroupRoutes = (await import('./routes/studentGroup-postgres.js')).default;
+const lessonsRoutes = (await import('./routes/lessons-postgres.js')).default;
+const attendanceRoutes = (await import('./routes/attendance-postgres.js')).default;
+const homeworkRoutes = (await import('./routes/homework-postgres.js')).default;
+const filesRoutes = (await import('./routes/files-postgres.js')).default;
 const notificationsRoutes = (await import('./routes/notifications-postgres.js')).default;
 
-// ⚠️ Quyidagilar hali NeDB'dan (keyingi bosqichda migration)
+// ⚠️ Quyidagilar hali NeDB'dan (kam muhim)
 const usersRoutes = (await import('./routes/users.js')).default;
-const lessonsRoutes = (await import('./routes/lessons.js')).default;
-const attendanceRoutes = (await import('./routes/attendance.js')).default;
-const homeworkRoutes = (await import('./routes/homework.js')).default;
-const filesRoutes = (await import('./routes/files.js')).default;
 const coinsRoutes = (await import('./routes/coins.js')).default;
 const reelsRoutes = (await import('./routes/reels.js')).default;
 const paymentsRoutes = (await import('./routes/payments.js')).default;
