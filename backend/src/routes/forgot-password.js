@@ -66,15 +66,18 @@ router.post('/send-otp', async (req, res) => {
       });
     }
 
-    // Email yuborish
-    const emailResult = await sendEmailOtp(email.trim(), otpCode);
-    console.log('📧 Email OTP natijasi:', emailResult);
+    // Email yuborish - async (tezroq javob qaytarish uchun)
+    try {
+      await sendEmailOtp(email.trim(), otpCode);
+      console.log('📧 Email OTP yuborildi:', email.trim());
+    } catch (emailError) {
+      console.error('📧 Email yuborishda xato:', emailError.message);
+      // Email yuborilmasa ham davom etamiz - kod database da saqlangan
+    }
 
     res.json({
       success: true,
-      message: 'Tasdiqlash kodi email manzilingizga yuborildi',
-      testMode: emailResult.testMode || false,
-      ...(emailResult.testMode && { testCode: emailResult.testCode })
+      message: 'Tasdiqlash kodi email manzilingizga yuborildi'
     });
 
   } catch (err) {

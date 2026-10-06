@@ -146,19 +146,10 @@ export async function sendEmailOtp(email, otpCode) {
     const emailPass = process.env.EMAIL_PASSWORD;
     const fromName = process.env.EMAIL_FROM_NAME || '287-Maktab';
 
-    // Agar email sozlanmagan bo'lsa - test rejim
+    // Agar email sozlanmagan bo'lsa - xato qaytarish
     if (!emailUser || emailUser === 'your_gmail@gmail.com' || !emailPass || emailPass === 'your_app_password') {
-      console.log('═══════════════════════════════════════════');
-      console.log('⚠️  EMAIL SOZLANMAGAN - TEST REJIM');
-      console.log('📧 Email:', email);
-      console.log('🔑 OTP Kod:', otpCode);
-      console.log('═══════════════════════════════════════════');
-      return {
-        success: true,
-        message: 'OTP kod yuborildi (test rejim)',
-        testMode: true,
-        testCode: otpCode
-      };
+      console.error('❌ EMAIL SOZLANMAGAN! .env faylida EMAIL_USER va EMAIL_PASSWORD ni to\'ldiring');
+      throw new Error('Email xizmati sozlanmagan. Iltimos admin bilan bog\'laning');
     }
 
     const transporter = nodemailer.createTransport({
@@ -166,7 +157,11 @@ export async function sendEmailOtp(email, otpCode) {
       auth: {
         user: emailUser,
         pass: emailPass
-      }
+      },
+      // Timeout sozlamalari - tezroq
+      connectionTimeout: 5000, // 5 soniya
+      greetingTimeout: 5000,
+      socketTimeout: 10000
     });
 
     const mailOptions = {
@@ -187,23 +182,21 @@ export async function sendEmailOtp(email, otpCode) {
       `
     };
 
-    await transporter.sendMail(mailOptions);
-    console.log('✅ Email yuborildi:', email);
+    // Async yuborish - tezroq javob qaytarish uchun
+    transporter.sendMail(mailOptions).then(() => {
+      console.log('✅ Email muvaffaqiyatli yuborildi:', email);
+    }).catch(err => {
+      console.error('❌ Email yuborishda xato (async):', err.message);
+    });
 
+    // Darhol javob qaytarish - foydalanuvchi kutmaydi
     return {
       success: true,
-      message: 'OTP kod email ga yuborildi'
+      message: 'OTP kod email manzilingizga yuborilmoqda'
     };
 
   } catch (error) {
     console.error('❌ Email yuborishda xato:', error.message);
-    // Xato bo'lsa test rejimda davom etamiz
-    console.log('⚠️  Test rejimda davom etilmoqda. OTP:', otpCode);
-    return {
-      success: true,
-      message: 'OTP kod yuborildi (test rejim)',
-      testMode: true,
-      testCode: otpCode
-    };
+    throw error; // Xatoni yuqoriga o'tkazish
   }
 }
